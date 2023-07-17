@@ -33,9 +33,9 @@ def Frequency_comb_gen_and_send(address: str, channel: int = 1, plot_signal: boo
         print(f"Set new wavefrom to channel {channel}..", end=" ")
 
         # Set frequency to 1 Hz since signal is 1 s long
-        fgen.ch1.set_frequency(1000, unit="Hz")
         fgen.channels[channel - 1].set_output_state("OFF")
         fgen.channels[channel - 1].set_function("USER0")
+        fgen.channels[channel - 1].set_frequency(1000, unit="Hz")
         print("ok")
         # Print current settings
         fgen.print_settings()
