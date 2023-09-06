@@ -1213,6 +1213,37 @@ def sine_wave(address: str, amplitude = 1, frequency = 20000, offset = 0, channe
         fgen.channels[channel - 1].set_offset(offset, unit="V")
         fgen.channels[channel - 1].set_amplitude(amplitude)
 
+def impulse(address: str, amplitude=1, frequency=100, offset=0, channel=1):
+    # Create a sharpest possible impulse
+    # Make only 1 out of 8000 points non zero
+    x = np.linspace(0, 4 * np.pi, 8000)
+    signal = np.zeros_like(x)
+    signal[4000] = 1.0
+
+    # Create initialise fgen if it was not supplied
+    with FuncGen(address) as fgen:
+
+        print("Current waveform catalogue")
+        for i, wav in enumerate(fgen.get_waveform_catalogue()):
+            print(f"  {i}: {wav}")
+
+        # Transfer the waveform
+        fgen.set_custom_waveform(signal, memory_num=100, verify=True)
+        print("New waveform catalogue:")
+        for i, wav in enumerate(fgen.get_waveform_catalogue()):
+            print(f"  {i}: {wav}")
+            
+        print(f"Set new wavefrom to channel {channel}..", end=" ")
+        fgen.channels[channel - 1].set_output_state("OFF")
+        fgen.channels[channel - 1].set_function("USER100") # because of `memory_num` above
+        fgen.channels[channel - 1].set_amplitude(amplitude)
+        fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
+        fgen.channels[channel - 1].set_offset(offset, unit="V")
+        print("ok")
+        
+        # Print current settings
+        fgen.print_settings()
+
 def turn_on(address:str, channel = 1):
     with FuncGen(address) as fgen:
         fgen.channels[channel - 1].set_output("ON")
