@@ -18,7 +18,8 @@ tek.impulse(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ, offset=AMP/2
 tek.turn_on(_VISA_ADDRESS_tektronix)
 
 if collect_data:
-    pass
+    # TODO
+    take_data_pico()
 
 i = 0
 while i < 260:

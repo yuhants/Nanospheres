@@ -1,6 +1,7 @@
 import copy
 import pyvisa
 import numpy as np
+from sympy import sieve
 from typing import Tuple, List, Union
 
 def _SI_prefix_to_factor(unit):
@@ -1243,6 +1244,35 @@ def impulse(address: str, amplitude=1, frequency=100, offset=0, channel=1):
         
         # Print current settings
         fgen.print_settings()
+
+def freq_comb(address: str, file: str, amplitude=1, frequency=1, offset=0, channel=1):
+    comb_data = np.load(file, allow_pickle=True)
+    signal = comb_data['sig']
+    
+    # Create initialise fgen if it was not supplied
+    with FuncGen(address) as fgen:
+
+        print("Current waveform catalogue")
+        for i, wav in enumerate(fgen.get_waveform_catalogue()):
+            print(f"  {i}: {wav}")
+
+        # Transfer the waveform
+        fgen.set_custom_waveform(signal, memory_num=200, verify=True)
+        print("New waveform catalogue:")
+        for i, wav in enumerate(fgen.get_waveform_catalogue()):
+            print(f"  {i}: {wav}")
+            
+        print(f"Set new wavefrom to channel {channel}..", end=" ")
+        fgen.channels[channel - 1].set_output_state("OFF")
+        fgen.channels[channel - 1].set_function("USER200") # because of `memory_num` above
+        fgen.channels[channel - 1].set_amplitude(amplitude)
+        fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
+        fgen.channels[channel - 1].set_offset(offset, unit="V")
+        print("ok")
+        
+        # Print current settings
+        fgen.print_settings()
+
 
 def turn_on(address:str, channel = 1):
     with FuncGen(address) as fgen:
