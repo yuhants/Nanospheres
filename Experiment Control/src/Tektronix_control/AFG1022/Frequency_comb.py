@@ -26,7 +26,7 @@ def Frequency_comb_gen_and_send(address: str, channel: int = 1, plot_signal: boo
     with AFG.FuncGen(address) as fgen:
 
         # Transfer the waveform
-        fgen.set_custom_waveform(signal, memory_num=0, verify=True)
+        fgen.set_custom_waveform(signal, memory_num=0, verify=False)
         print("New waveform catalogue:")
         for i, wav in enumerate(fgen.get_waveform_catalogue()):
             print(f"  {i}: {wav}")
@@ -38,7 +38,7 @@ def Frequency_comb_gen_and_send(address: str, channel: int = 1, plot_signal: boo
         fgen.channels[channel - 1].set_frequency(1000, unit="Hz")
         print("ok")
         # Print current settings
-        fgen.print_settings()
+        #fgen.print_settings()
 
 
 ## ~~~~~~~~~~~~~~~~~~~~~~~~~~~~ MAIN FUNCTION ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~ ##
@@ -46,4 +46,17 @@ def Frequency_comb_gen_and_send(address: str, channel: int = 1, plot_signal: boo
 _VISA_ADDRESS = "USB0::0x0699::0x0353::2238362::INSTR"
 
 if __name__ == "__main__":
-    Frequency_comb_gen_and_send(_VISA_ADDRESS)
+    Frequency_comb_gen_and_send(_VISA_ADDRESS, fstart = 20, fend = 50, numsteps = 16)
+"""
+AFG.turn_on(_VISA_ADDRESS)
+
+i = 0
+while i < 5:
+    try:
+        time.sleep(1)
+        i+=1
+    except KeyboardInterrupt:
+        break
+
+AFG.turn_off(_VISA_ADDRESS)
+"""

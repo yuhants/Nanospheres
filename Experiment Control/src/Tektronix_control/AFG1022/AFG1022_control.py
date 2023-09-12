@@ -1245,10 +1245,8 @@ def impulse(address: str, amplitude=1, frequency=100, offset=0, channel=1):
         # Print current settings
         fgen.print_settings()
 
-def freq_comb(address: str, file: str, amplitude=1, frequency=1, offset=0, channel=1):
-    comb_data = np.load(file, allow_pickle=True)
-    signal = comb_data['sig']
-    
+def freq_comb(address: str, signal, amplitude=1, frequency=100, offset=0, channel=1):
+
     # Create initialise fgen if it was not supplied
     with FuncGen(address) as fgen:
 
@@ -1257,6 +1255,7 @@ def freq_comb(address: str, file: str, amplitude=1, frequency=1, offset=0, chann
             print(f"  {i}: {wav}")
 
         # Transfer the waveform
+        # Load signal into the waveform generator
         fgen.set_custom_waveform(signal, memory_num=200, verify=True)
         print("New waveform catalogue:")
         for i, wav in enumerate(fgen.get_waveform_catalogue()):

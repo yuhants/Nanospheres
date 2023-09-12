@@ -20,11 +20,11 @@ TODO: need to add the bit that collects and analyses the data.
 ### Variables 
 HV   = False  # Trigger HV supply
 
-FREQ = 70000  # Driving frequency in Hz
-AMP  = 1
+# FREQ = 48000  # Driving frequency in Hz
+# AMP  = 1
 
-# FREQ = 42000
-# AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+FREQ = 40000
+AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
 
 VOLT = 1      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
@@ -44,6 +44,15 @@ tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ)
 tek.turn_on(_VISA_ADDRESS_tektronix)
 print('E field switched on')
 
+## Tom likes to keep the E field on for a while
+# i = 0
+# while i < 10:
+#     try:
+#         time.sleep(1)
+#         i+=1
+#     except KeyboardInterrupt:
+#         break
+
 # Initialise the function generator outputs
 if HV:
     # Apply a *negative* impulse every five seconds
@@ -58,7 +67,7 @@ if HV:
 
     # Hold in loop until cancel - have 10 minute timeout
     i = 0
-    while i < 260:
+    while i < 200:
         try:
             time.sleep(1)
             i+=1
@@ -69,7 +78,7 @@ if HV:
 
 # Have the E field on for a while
 i = 0
-while i < 260:
+while i < 200:
     try:
         time.sleep(1)
         i+=1
