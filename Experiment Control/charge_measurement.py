@@ -29,7 +29,7 @@ AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
 VOLT = 1      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
               # I think this probably also maxes out around 1 kV as it can't supply more current.
-FREQ_PULSE = 0.2
+FREQ_PULSE = 0.5
 
 ### Don't change unless error with these values (e.g. does not connect)
 ### Can find out what the value should be using the following lines. You will have to figure out which resource is which instrument
@@ -58,8 +58,8 @@ if HV:
     # Apply a *negative* impulse every five seconds
     # the signal is sent to the HV amplifier with a negavie polarity
     DG822 = rig.FuncGen(_VISA_ADDRESS_rigol)
-    # DG822.pulse(amp=VOLT, duty=98, freq=FREQ_PULSE, off=-VOLT/2)
-    DG822.pulse(amp=VOLT, duty=50, freq=FREQ_PULSE, off=-VOLT/2)
+    DG822.pulse(amp=VOLT, duty=98, freq=FREQ_PULSE, off=-VOLT/2)
+    # DG822.pulse(amp=VOLT, duty=50, freq=FREQ_PULSE, off=-VOLT/2)
 
     # Ouput signals
     DG822.turn_on()

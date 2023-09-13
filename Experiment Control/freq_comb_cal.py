@@ -7,19 +7,23 @@ import time
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 
 AMPLIFIED = True
+
 # DO NOT change the `FREQ` parameter
-# the comb timestream is generated assuming 100 Hz
-# repetition rate
+# the comb timestream is generated assuming 100 Hz repetition rate
 # CAUTION: too large amplitude will knock the sphere out
-AMP  = 10  # Intended peak-to-peak voltage *for each frequency applied*
+# Do not use `AMP` larger than 0.5 at low pressure
+AMP  = 2.5  # Intended peak-to-peak voltage *for each frequency applied*
+
+# AMP = 10
 FREQ = 100
 collect_data = True
 
+# The amplifier amplify the signal by -20
 if AMPLIFIED:
     AMP = AMP / 20
 
+# freq_comb_file = r"C:\Users\microspheres\Documents\Python Scripts\Experiment Control\freq_comb_20khz_70khz_deltaf5khz.npz"
 freq_comb_file = r"C:\Users\microspheres\Documents\Python Scripts\Experiment Control\freq_comb_20khz_70khz_deltaf2khz.npz"
-# freq_comb_file = r"C:\Users\microspheres\Documents\Python Scripts\Experiment Control\freq_42khz.npz"
 
 def norm_amp(amp, signal):
     """Normalized driving amplitude"""
