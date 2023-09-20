@@ -4,7 +4,7 @@ import src.Tektronix_control.AFG1022.AFG1022_control as tek
 
 AMPLIFIED = True
 
-FREQ = 89000
+FREQ = 103000
 AMP  = 25    # Peak-to-peak amplitude of the driving E field
 
 if AMPLIFIED:

@@ -11,10 +11,9 @@ AMPLIFIED = True
 # DO NOT change the `FREQ` parameter
 # the comb timestream is generated assuming 100 Hz repetition rate
 # CAUTION: too large amplitude will knock the sphere out
-# Do not use `AMP` larger than 0.5 at low pressure
-AMP  = 2.5  # Intended peak-to-peak voltage *for each frequency applied*
+# AMP  = 1.5  # Intended peak-to-peak voltage *for each frequency applied*
 
-# AMP = 10
+AMP = 10
 FREQ = 100
 collect_data = True
 

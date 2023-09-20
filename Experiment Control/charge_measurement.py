@@ -17,19 +17,23 @@ TODO: need to add the bit that collects and analyses the data.
 !!!!!!!!!!
 """
 
-### Variables 
+### Variables
+AMPLIFIED = True
 HV   = False  # Trigger HV supply
 
 # FREQ = 48000  # Driving frequency in Hz
 # AMP  = 1
 
-FREQ = 40000
-AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+FREQ = 48000
+# AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+AMP = 10
+if AMPLIFIED:
+    AMP = AMP / 20
 
 VOLT = 1      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
               # I think this probably also maxes out around 1 kV as it can't supply more current.
-FREQ_PULSE = 0.5
+FREQ_PULSE = 0.25
 
 ### Don't change unless error with these values (e.g. does not connect)
 ### Can find out what the value should be using the following lines. You will have to figure out which resource is which instrument
