@@ -7,52 +7,57 @@ from picosdk.functions import adc2mV, assert_pico_ok
 import matplotlib.pyplot as plt
 import time
 
+# Picoscope data collection routine is modified from picoscope SDK example
+# https://github.com/yuhants/picosdk-python-wrappers/blob/master/ps4000aExamples/ps4000aStreamingExample.py
+#
+
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 
 AMP  = 1
 FREQ = 20
 collect_data = True
+n_data = 5
+
+chandle = ctypes.c_int16()
+nextSample = 0
+channels = ['A', 'B', 'F', 'H']
 
 def main():
-    # Connect to function generator and apply custom impulse
-    tek.impulse(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ, offset=AMP/2, channel=1)
-    tek.turn_on(_VISA_ADDRESS_tektronix)
+    # Connect to function generator and transfer custom impulse
+    # For some reason the transfer will fail at the first time - just run again
+    # tek.impulse(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ, offset=AMP/2, channel=1)
 
     if collect_data:
         # TODO
-        data = take_data_pico()
+        buffer_size = 200
+        nbuffer = 1       # Number of buffer to capture
+        samp_interval = 1 # us
+        channel_range = 10
 
-    # i = 0
-    # while i < 260:
-    #     try:
-    #         time.sleep(1)
-    #         i+=1
-    #     except KeyboardInterrupt:
-    #         break
+        # Create chandle and status ready for use
+        status = {}
+        initialize_pico(ps, status)
+        tt, data = stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_interval)
 
-    plt.plot(data[0], data[1])
-    plt.plot(data[0], data[2])
-    plt.plot(data[0], data[3])
-    plt.plot(data[0], data[4])
+        print(tt)
+        print(data)
 
+    else:
+        tek.turn_on(_VISA_ADDRESS_tektronix)
 
-    tek.turn_off(_VISA_ADDRESS_tektronix)
+        i = 0
+        while i < 260:
+            try:
+                time.sleep(1)
+                i+=1
+            except KeyboardInterrupt:
+                break
+
+        tek.turn_off(_VISA_ADDRESS_tektronix)
+
     print('Program ends')
 
-def take_data_pico():
-    buffer_size = 20000
-    nbuffer = 1
-    samp_interval = 1  # Sampling interval in us
-
-    ## Ask the picoscope to collect 20 ms of data
-    ##
-    # Below modified from picoscope SDK example
-    # https://github.com/yuhants/picosdk-python-wrappers/blob/master/ps4000aExamples/ps4000aStreamingExample.py
-
-    # Create chandle and status ready for use
-    chandle = ctypes.c_int16()
-    status = {}
-
+def initialize_pico(ps, status):
     # Returns handle to chandle for use in future API functions
     status["openunit"] = ps.ps4000aOpenUnit(ctypes.byref(chandle), None)
 
@@ -65,107 +70,72 @@ def take_data_pico():
             status["changePowerSource"] = ps.ps4000aChangePowerSource(chandle, powerStatus)
         else:
             raise
-
         assert_pico_ok(status["changePowerSource"])
 
-    # Set up channel A, B, F, H
+def set_up_channels_pico(ps, status, channels, channel_range=10, buffer_size=20000, nbuffer=1):
     enabled = 1
     disabled = 0
     analogue_offset = 0.0
-    channel_range = 10
 
-    status["setChA"] = ps.ps4000aSetChannel(chandle,
-                                            ps.PS4000A_CHANNEL['PS4000A_CHANNEL_A'],
-                                            enabled,
-                                            ps.PS4000A_COUPLING['PS4000A_DC'],
-                                            channel_range,
-                                            analogue_offset)
-    assert_pico_ok(status["setChA"])
+    bufferMax = []
+    for i, channel in enumerate(channels):
+        bufferMax.append(set_channel(ps, status, channel, enabled, channel_range, analogue_offset, buffer_size, nbuffer))
 
-    status["setChB"] = ps.ps4000aSetChannel(chandle,
-                                            ps.PS4000A_CHANNEL['PS4000A_CHANNEL_B'],
-                                            enabled,
-                                            ps.PS4000A_COUPLING['PS4000A_DC'],
-                                            channel_range,
-                                            analogue_offset)
-    assert_pico_ok(status["setChB"])
+    return bufferMax
 
-    status["setChF"] = ps.ps4000aSetChannel(chandle,
-                                            ps.PS4000A_CHANNEL['PS4000A_CHANNEL_F'],
-                                            enabled,
-                                            ps.PS4000A_COUPLING['PS4000A_DC'],
-                                            channel_range,
-                                            analogue_offset)
-    assert_pico_ok(status["setChF"])
+def set_channel(ps, status, channel, enabled, channel_range, analogue_offset, buffer_size, nbuffer):
+    status_prefix = 'setCh' + channel
+    status_prefix_buff = 'setDataBuffers' + channel
+    channel_prefix = 'PS4000A_CHANNEL_' + channel
 
-    status["setChH"] = ps.ps4000aSetChannel(chandle,
-                                            ps.PS4000A_CHANNEL['PS4000A_CHANNEL_H'],
-                                            enabled,
-                                            ps.PS4000A_COUPLING['PS4000A_DC'],
-                                            channel_range,
-                                            analogue_offset)
-    assert_pico_ok(status["setChH"])
+    status[status_prefix] = ps.ps4000aSetChannel(chandle,
+                                                 ps.PS4000A_CHANNEL[channel_prefix],
+                                                 enabled,
+                                                 ps.PS4000A_COUPLING['PS4000A_DC'],
+                                                 channel_range,
+                                                 analogue_offset)
+    assert_pico_ok(status[status_prefix])
 
     # Size of capture 
     sizeOfOneBuffer = buffer_size
     numBuffersToCapture = nbuffer
-
     totalSamples = sizeOfOneBuffer * numBuffersToCapture
-
+    
     # Create buffers ready for assigning pointers for data collection
-    bufferAMax = np.zeros(shape=sizeOfOneBuffer, dtype=np.int16)
-    bufferBMax = np.zeros(shape=sizeOfOneBuffer, dtype=np.int16)
-    bufferFMax = np.zeros(shape=sizeOfOneBuffer, dtype=np.int16)
-    bufferHMax = np.zeros(shape=sizeOfOneBuffer, dtype=np.int16)
-
+    bufferMax = np.zeros(shape=sizeOfOneBuffer, dtype=np.int16)
     memory_segment = 0
 
-    # Set data buffer location for data collection from channel A, B, F, G
-    status["setDataBuffersA"] = ps.ps4000aSetDataBuffers(chandle,
-                                                         ps.PS4000A_CHANNEL['PS4000A_CHANNEL_A'],
-                                                         bufferAMax.ctypes.data_as(ctypes.POINTER(ctypes.c_int16)),
-                                                         None,
-                                                         sizeOfOneBuffer,
-                                                         memory_segment,
-                                                         ps.PS4000A_RATIO_MODE['PS4000A_RATIO_MODE_NONE'])
-    assert_pico_ok(status["setDataBuffersA"])
+    # Set data buffer location for data collection from channel
+    status[status_prefix_buff] = ps.ps4000aSetDataBuffers(chandle,
+                                                        ps.PS4000A_CHANNEL[channel_prefix],
+                                                        bufferMax.ctypes.data_as(ctypes.POINTER(ctypes.c_int16)),
+                                                        None,
+                                                        sizeOfOneBuffer,
+                                                        memory_segment,
+                                                        ps.PS4000A_RATIO_MODE['PS4000A_RATIO_MODE_NONE'])
+    assert_pico_ok(status[status_prefix_buff])
 
-    status["setDataBuffersB"] = ps.ps4000aSetDataBuffers(chandle,
-                                                         ps.PS4000A_CHANNEL['PS4000A_CHANNEL_B'],
-                                                         bufferBMax.ctypes.data_as(ctypes.POINTER(ctypes.c_int16)),
-                                                         None,
-                                                         sizeOfOneBuffer,
-                                                         memory_segment,
-                                                         ps.PS4000A_RATIO_MODE['PS4000A_RATIO_MODE_NONE'])
-    assert_pico_ok(status["setDataBuffersB"])
+    return bufferMax
 
-    status["setDataBuffersF"] = ps.ps4000aSetDataBuffers(chandle,
-                                                         ps.PS4000A_CHANNEL['PS4000A_CHANNEL_F'],
-                                                         bufferAMax.ctypes.data_as(ctypes.POINTER(ctypes.c_int16)),
-                                                         None,
-                                                         sizeOfOneBuffer,
-                                                         memory_segment,
-                                                         ps.PS4000A_RATIO_MODE['PS4000A_RATIO_MODE_NONE'])
-    assert_pico_ok(status["setDataBuffersF"])
-
-    status["setDataBuffersH"] = ps.ps4000aSetDataBuffers(chandle,
-                                                         ps.PS4000A_CHANNEL['PS4000A_CHANNEL_H'],
-                                                         bufferBMax.ctypes.data_as(ctypes.POINTER(ctypes.c_int16)),
-                                                         None,
-                                                         sizeOfOneBuffer,
-                                                         memory_segment,
-                                                         ps.PS4000A_RATIO_MODE['PS4000A_RATIO_MODE_NONE'])
-    assert_pico_ok(status["setDataBuffersH"])
+def stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_interval):
+    bufferMax = set_up_channels_pico(ps, status, channels, channel_range, buffer_size, nbuffer)
 
     # Begin streaming mode:
     sampleInterval = ctypes.c_int32(samp_interval)
     sampleUnits = ps.PS4000A_TIME_UNITS['PS4000A_US']
 
+    # Size of capture 
+    sizeOfOneBuffer = buffer_size
+    numBuffersToCapture = nbuffer
+    totalSamples = sizeOfOneBuffer * numBuffersToCapture
+
     # We are not triggering:
     maxPreTriggerSamples = 0
     autoStopOn = 1
+
     # No downsampling:
     downsampleRatio = 1
+
     status["runStreaming"] = ps.ps4000aRunStreaming(chandle,
                                                     ctypes.byref(sampleInterval),
                                                     sampleUnits,
@@ -180,24 +150,25 @@ def take_data_pico():
     actualSampleInterval = sampleInterval.value
     print("Capturing at sample interval %s us" % actualSampleInterval)
 
-    # We need a big buffer, not registered with the driver, to keep our complete capture in.
-    bufferCompleteA = np.zeros(shape=totalSamples, dtype=np.int16)
-    bufferCompleteB = np.zeros(shape=totalSamples, dtype=np.int16)
-    bufferCompleteF = np.zeros(shape=totalSamples, dtype=np.int16)
-    bufferCompleteH = np.zeros(shape=totalSamples, dtype=np.int16)
-    nextSample = 0
+    # Size of capture 
+    sizeOfOneBuffer = buffer_size
+    numBuffersToCapture = nbuffer
+    totalSamples = sizeOfOneBuffer * numBuffersToCapture
+
+    # Create a big buffer
+    bufferComplete = np.zeros(shape=(len(channels), totalSamples), dtype=np.int16)
     autoStopOuter = False
     wasCalledBack = False
 
     def streaming_callback(handle, noOfSamples, startIndex, overflow, triggerAt, triggered, autoStop, param):
-        global nextSample, autoStopOuter, wasCalledBack
+        global nextSample, autoStopOuter, wasCalledBack, channels
         wasCalledBack = True
         destEnd = nextSample + noOfSamples
         sourceEnd = startIndex + noOfSamples
-        bufferCompleteA[nextSample:destEnd] = bufferAMax[startIndex:sourceEnd]
-        bufferCompleteB[nextSample:destEnd] = bufferBMax[startIndex:sourceEnd]
-        bufferCompleteF[nextSample:destEnd] = bufferFMax[startIndex:sourceEnd]
-        bufferCompleteH[nextSample:destEnd] = bufferHMax[startIndex:sourceEnd]
+
+        for i, channel in enumerate(channels):
+            bufferComplete[i][nextSample:destEnd] = bufferMax[i][startIndex:sourceEnd]
+
         nextSample += noOfSamples
         if autoStop:
             autoStopOuter = True
@@ -221,22 +192,12 @@ def take_data_pico():
     assert_pico_ok(status["maximumValue"])
 
     # Convert ADC counts data to mV
-    adc2mVChAMax = adc2mV(bufferCompleteA, channel_range, maxADC)
-    adc2mVChBMax = adc2mV(bufferCompleteB, channel_range, maxADC)
-    adc2mVChFMax = adc2mV(bufferCompleteF, channel_range, maxADC)
-    adc2mVChHMax = adc2mV(bufferCompleteH, channel_range, maxADC)
+    data = np.empty_like(bufferComplete)
+    for i in range(len(channels)):
+        data[i] = adc2mV(bufferComplete[i], channel_range, maxADC)
 
     # Create time data
-    tt = np.linspace(0, (totalSamples - 1) * actualSampleInterval, totalSamples) / 1000
-
-    # # Plot data from channel A and B
-    # plt.plot(time, adc2mVChAMax[:])
-    # plt.plot(time, adc2mVChBMax[:])
-    # # plt.plot(time, adc2mVChFMax[:])
-    # # plt.plot(time, adc2mVChGMax[:])
-    # plt.xlabel('Time (ms)')
-    # plt.ylabel('Voltage (mV)')
-    # plt.show()
+    tt = np.linspace(0, (totalSamples - 1) * actualSampleInterval, totalSamples)
 
     # Stop the scope
     # handle = chandle
@@ -251,7 +212,7 @@ def take_data_pico():
     # Display status returns
     print(status)
 
-    return [tt, adc2mVChAMax, adc2mVChBMax, adc2mVChFMax, adc2mVChHMax]
+    return tt, data
 
 if __name__=="__main__":
    main()

@@ -1219,7 +1219,7 @@ def impulse(address: str, amplitude=1, frequency=100, offset=0, channel=1):
     # Make only 1 out of 8000 points non zero
     x = np.linspace(0, 4 * np.pi, 8000)
     signal = np.zeros_like(x)
-    signal[4000] = 1.0
+    signal[200] = 1.0
 
     # Create initialise fgen if it was not supplied
     with FuncGen(address) as fgen:
