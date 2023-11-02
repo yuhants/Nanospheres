@@ -4,6 +4,8 @@ import time
 import src.RIGOL_control.DG822.DG822_control as rig
 import src.Tektronix_control.AFG1022.AFG1022_control as tek
 
+from PicoControl.take_data_pico import initialize_pico, stream_data
+
 """
 Charge calibration by applying a sinuisoidal E field at a fixed
 frequency through the arbitrary function generator.
@@ -20,6 +22,7 @@ TODO: need to add the bit that collects and analyses the data.
 ### Variables
 AMPLIFIED = True
 HV   = False  # Trigger HV supply
+collect_data = False
 
 # FREQ = 48000  # Driving frequency in Hz
 # AMP  = 1
@@ -37,11 +40,14 @@ FREQ_PULSE = 0.25
 
 ### Don't change unless error with these values (e.g. does not connect)
 ### Can find out what the value should be using the following lines. You will have to figure out which resource is which instrument
-rm = pyvisa.ResourceManager()
-rm.list_resources()
+# rm = pyvisa.ResourceManager()
+# rm.list_resources()
 
 _VISA_ADDRESS_rigol = "USB0::0x1AB1::0x0643::DG8A204201834::INSTR"
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
+
+if collect_data:
+    pass
 
 # Connect to function generator and apply sine wave
 tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ)

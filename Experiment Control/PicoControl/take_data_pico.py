@@ -1,93 +1,15 @@
 import numpy as np
-import src.Tektronix_control.AFG1022.AFG1022_control as tek
-
 import ctypes
+
 from picosdk.ps4000a import ps4000a as ps
 from picosdk.functions import adc2mV, assert_pico_ok
-import matplotlib.pyplot as plt
-import time
-
-#
-# At the moment `Trigger Inteval` (burst period) that defines the interval between
-# pulses has to be manually set on the AFG
-#
-# Picoscope data collection routine is modified from picoscope SDK example
-# https://github.com/yuhants/picosdk-python-wrappers/blob/master/ps4000aExamples/ps4000aStreamingExample.py
-#
-
-_VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
-
-# Amplitude of impulse in V
-AMP  = 2
-collect_data = True
-# ndata = 5
-
-
 
 # Create chandle and status used by picoscope
 chandle = ctypes.c_int16()
 status = {}
+
 # This is a global variable used by picoscope DAQ
 nextSample = 0
-
-def main():
-    # Connect to function generator and transfer custom impulse
-    # For some reason the transfer will fail at the first time - just run again
-    tek.impulse(_VISA_ADDRESS_tektronix, amplitude=AMP, offset=AMP/2, channel=1)
-    # tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=1, frequency=20000)
-
-    if collect_data:
-        channels = ['A', 'B', 'F', 'H']
-        # channels = ['A', 'F']
-
-        # Collect 500 ms of data
-        # Total length of data = `samp_interval` * `buffer_size`
-        nbuffer = 1  # Number of buffer to capture
-        buffer_size = 10000000
-        samp_interval = 500
-        time_units = 'PS4000A_NS'
-
-        # Channel range go through in the order listed in Picoscope software
-        # Options:
-        # 0, 1, 2   - +- 10, 20, 50 mV
-        # 3, 4, 5   - +- 100, 200, 500 mV
-        # 6, 7, 8   - +- 1, 2, 5 V
-        # 9, 10, 11 - +- 10, 20, 50 V
-        channel_range = 8
-
-        # Initialize picoscope, then turn on the impulse signal
-        initialize_pico(ps, status)
-        tek.turn_on(_VISA_ADDRESS_tektronix)
-
-        # Capture data and then turn off
-        # Time in specificed units, signal in mV
-        tt, data = stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_interval, time_units)
-        tek.turn_off(_VISA_ADDRESS_tektronix)
-
-        # print(tt, data[0])
-        plt.plot(tt/1e6, data[0])
-        plt.plot(tt/1e6, data[1])
-        plt.plot(tt/1e6, data[2])
-        plt.plot(tt/1e6, data[3])
-        plt.xlabel('Time (ms)')
-        plt.ylabel('Signal (mV)')
-        plt.show()
-
-    else:
-        # Turn it on and leave it on until interruption
-        tek.turn_on(_VISA_ADDRESS_tektronix)
-
-        i = 0
-        while i < 260:
-            try:
-                time.sleep(1)
-                i+=1
-            except KeyboardInterrupt:
-                break
-
-        tek.turn_off(_VISA_ADDRESS_tektronix)
-
-    print('Program ends')
 
 def initialize_pico(ps, status):
     # Returns handle to chandle for use in future API functions
@@ -150,8 +72,6 @@ def set_channel(ps, status, channel, enabled, channel_range, analogue_offset, bu
     return bufferMax
 
 def stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_interval, time_units):
-    global nextSample
-
     bufferMax = set_up_channels_pico(ps, status, channels, channel_range, buffer_size, nbuffer)
 
     # Begin streaming mode:
@@ -178,7 +98,6 @@ def stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_
                                                     downsampleRatio,
                                                     ps.PS4000A_RATIO_MODE['PS4000A_RATIO_MODE_NONE'],
                                                     sizeOfOneBuffer)
-    
     assert_pico_ok(status["runStreaming"])
 
     actualSampleInterval = sampleInterval.value
@@ -196,7 +115,6 @@ def stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_
 
     def streaming_callback(handle, noOfSamples, startIndex, overflow, triggerAt, triggered, autoStop, param):
         global nextSample, autoStopOuter, wasCalledBack, channels
-
         wasCalledBack = True
         destEnd = nextSample + noOfSamples
         sourceEnd = startIndex + noOfSamples
@@ -248,6 +166,3 @@ def stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_
     print(status)
 
     return tt, data
-
-if __name__=="__main__":
-    main()

@@ -1206,6 +1206,23 @@ class FuncGenChannel:
                 )
                 raise NotSetError(msg)
             
+    def set_burst(self, ncycle: int):
+        self._fgen.write(
+                    f"{self._source}BURSt:STATe ON",
+                    custom_err_message=f"burst mode on",
+                )
+
+        self._fgen.write(
+            f"{self._source}BURSt:MODE TRIGgered",
+            custom_err_message=f"burst mode triggered",
+        )
+        print('Set to the trigggered burst mode')
+        
+        self._fgen.write(
+            f"{self._source}BURSt:NCYCles {ncycle}",
+            custom_err_message=f"burst number of cycles",
+        )        
+        
 def sine_wave(address: str, amplitude = 1, frequency = 20000, offset = 0, channel = 1):
     """Changes channel input to sin wave with input frequency, offset and pk-pk amplitude"""
     with FuncGen(address) as fgen:
@@ -1214,12 +1231,12 @@ def sine_wave(address: str, amplitude = 1, frequency = 20000, offset = 0, channe
         fgen.channels[channel - 1].set_offset(offset, unit="V")
         fgen.channels[channel - 1].set_amplitude(amplitude)
 
-def impulse(address: str, amplitude=1, frequency=100, offset=0, channel=1):
+def impulse(address: str, amplitude=1, frequency=100, offset=0.5, channel=1):
     # Create a sharpest possible impulse
     # Make only 1 out of 8000 points non zero
-    x = np.linspace(0, 4 * np.pi, 8000)
+    x = np.linspace(0, 4 * np.pi, 8192)
     signal = np.zeros_like(x)
-    signal[200] = 1.0
+    signal[0] = 1.0
 
     # Create initialise fgen if it was not supplied
     with FuncGen(address) as fgen:
@@ -1237,9 +1254,11 @@ def impulse(address: str, amplitude=1, frequency=100, offset=0, channel=1):
         print(f"Set new wavefrom to channel {channel}..", end=" ")
         fgen.channels[channel - 1].set_output_state("OFF")
         fgen.channels[channel - 1].set_function("USER100") # because of `memory_num` above
+        fgen.channels[channel - 1].set_burst(ncycle=1)
         fgen.channels[channel - 1].set_amplitude(amplitude)
-        fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
         fgen.channels[channel - 1].set_offset(offset, unit="V")
+
+        # fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
         print("ok")
         
         # Print current settings
@@ -1262,6 +1281,8 @@ def freq_comb(address: str, signal, amplitude=1, frequency=100, offset=0, channe
             print(f"  {i}: {wav}")
             
         print(f"Set new wavefrom to channel {channel}..", end=" ")
+        # TODO
+        # implement burst mode here
         fgen.channels[channel - 1].set_output_state("OFF")
         fgen.channels[channel - 1].set_function("USER200") # because of `memory_num` above
         fgen.channels[channel - 1].set_amplitude(amplitude)
@@ -1272,11 +1293,9 @@ def freq_comb(address: str, signal, amplitude=1, frequency=100, offset=0, channe
         # Print current settings
         fgen.print_settings()
 
-
 def turn_on(address:str, channel = 1):
     with FuncGen(address) as fgen:
         fgen.channels[channel - 1].set_output("ON")
-
 
 def turn_off(address:str, channel = 1):
     with FuncGen(address) as fgen:
