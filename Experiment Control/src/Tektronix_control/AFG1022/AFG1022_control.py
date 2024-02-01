@@ -1231,12 +1231,22 @@ def sine_wave(address: str, amplitude = 1, frequency = 20000, offset = 0, channe
         fgen.channels[channel - 1].set_offset(offset, unit="V")
         fgen.channels[channel - 1].set_amplitude(amplitude)
 
-def impulse(address: str, amplitude=1, frequency=100, offset=0.5, channel=1):
+def dc_offset(address: str, offset=-5, channel=2):
+    # x = np.linspace(0, 4 * np.pi, 8192)
+    # signal = np.oness_like(x)
+    with FuncGen(address) as fgen:
+        fgen.channels[channel - 1].set_function("DC")
+        # fgen.channels[channel - 1].set_amplitude(0.002)
+        fgen.channels[channel - 1].set_offset(offset, unit="V")
+
+def impulse(address: str, amplitude=5, frequency=100, offset=0.5, channel=1):
     # Create a sharpest possible impulse
     # Make only 1 out of 8000 points non zero
     x = np.linspace(0, 4 * np.pi, 8192)
     signal = np.zeros_like(x)
-    signal[0] = 1.0
+    # signal[0] = 1.0
+    signal[0] = -1.0
+
 
     # Create initialise fgen if it was not supplied
     with FuncGen(address) as fgen:
@@ -1254,9 +1264,9 @@ def impulse(address: str, amplitude=1, frequency=100, offset=0.5, channel=1):
         print(f"Set new wavefrom to channel {channel}..", end=" ")
         fgen.channels[channel - 1].set_output_state("OFF")
         fgen.channels[channel - 1].set_function("USER100") # because of `memory_num` above
-        fgen.channels[channel - 1].set_burst(ncycle=1)
         fgen.channels[channel - 1].set_amplitude(amplitude)
         fgen.channels[channel - 1].set_offset(offset, unit="V")
+        fgen.channels[channel - 1].set_burst(ncycle=1)
 
         # fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
         print("ok")

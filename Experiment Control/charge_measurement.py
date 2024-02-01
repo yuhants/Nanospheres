@@ -24,16 +24,23 @@ AMPLIFIED = True
 HV   = False  # Trigger HV supply
 collect_data = False
 
-# FREQ = 48000  # Driving frequency in Hz
-# AMP  = 1
+OFFSET = -10
 
-FREQ = 48000
-# AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
-AMP = 10
+# FREQ = 65000  # Driving frequency in Hz
+# AMP  = 0.5
+
+FREQ = 62000
+AMP  = 10    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+# AMP = 10
+
 if AMPLIFIED:
     AMP = AMP / 20
+    OFFSET1 = OFFSET / -20
+else:
+    OFFSET1 = OFFSET
+OFFSET2 = OFFSET
 
-VOLT = 1      # Voltage for triggering HV supply for needle. Value in kV.
+VOLT = 1.05      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
               # I think this probably also maxes out around 1 kV as it can't supply more current.
 FREQ_PULSE = 0.25
@@ -50,8 +57,10 @@ if collect_data:
     pass
 
 # Connect to function generator and apply sine wave
-tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ)
-tek.turn_on(_VISA_ADDRESS_tektronix)
+tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ, offset=OFFSET1, channel=1)
+tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
+tek.turn_on(_VISA_ADDRESS_tektronix, channel=1)
+tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 print('E field switched on')
 
 ## Tom likes to keep the E field on for a while
@@ -66,10 +75,10 @@ print('E field switched on')
 # Initialise the function generator outputs
 if HV:
     # Apply a *negative* impulse every five seconds
-    # the signal is sent to the HV amplifier with a negavie polarity
+    # the signal is sent to the HV amplifier with a negative polarity
     DG822 = rig.FuncGen(_VISA_ADDRESS_rigol)
-    DG822.pulse(amp=VOLT, duty=98, freq=FREQ_PULSE, off=-VOLT/2)
-    # DG822.pulse(amp=VOLT, duty=50, freq=FREQ_PULSE, off=-VOLT/2)
+    # DG822.pulse(amp=VOLT, duty=99.2, freq=FREQ_PULSE, off=-VOLT/2)
+    DG822.pulse(amp=VOLT, duty=50, freq=FREQ_PULSE, off=-VOLT/2)
 
     # Ouput signals
     DG822.turn_on()
@@ -95,6 +104,7 @@ while i < 200:
     except KeyboardInterrupt:
         break
 
-tek.turn_off(_VISA_ADDRESS_tektronix)
+tek.turn_off(_VISA_ADDRESS_tektronix, channel=1)
+tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
 print('E field switched off')
 print('Program ends')

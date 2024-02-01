@@ -26,8 +26,8 @@ class FuncGen:
     def query(self, command):
         response = self._inst.query(command)
         return response
-
-    def pulse(self, channel = 1, amp = -5, off = 0, freq = 0.2, duty = 0.2):
+    
+    def pulse(self, channel=1, amp=-5, off=0, freq=0.2, duty=0.2):
     
         source = f"SOURce{channel}:"
 

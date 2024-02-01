@@ -9,7 +9,8 @@ import time
 
 #
 # At the moment `Trigger Inteval` (burst period) that defines the interval between
-# pulses has to be manually set on the AFG
+# pulses has to be manually set on AFG1022
+# The current value is set to 300 ms, i.e., the pulses are at least 300 ms apart
 #
 # Picoscope data collection routine is modified from picoscope SDK example
 # https://github.com/yuhants/picosdk-python-wrappers/blob/master/ps4000aExamples/ps4000aStreamingExample.py
@@ -17,12 +18,20 @@ import time
 
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 
+AMPLIFIED = False
+collect_data = False
+
 # Amplitude of impulse in V
 AMP  = 2
-collect_data = True
+OFFSET = 0
 # ndata = 5
 
-
+if AMPLIFIED:
+    AMP = AMP / 20
+    OFFSET1 = OFFSET / -20
+else:
+    OFFSET1 = OFFSET
+OFFSET2 = OFFSET
 
 # Create chandle and status used by picoscope
 chandle = ctypes.c_int16()
@@ -31,14 +40,17 @@ status = {}
 nextSample = 0
 
 def main():
+    global channels
+
     # Connect to function generator and transfer custom impulse
     # For some reason the transfer will fail at the first time - just run again
-    tek.impulse(_VISA_ADDRESS_tektronix, amplitude=AMP, offset=AMP/2, channel=1)
+    tek.impulse(_VISA_ADDRESS_tektronix, amplitude=AMP, offset=OFFSET1-AMP/2, channel=1)
+    tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
     # tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=1, frequency=20000)
 
     if collect_data:
-        channels = ['A', 'B', 'F', 'H']
-        # channels = ['A', 'F']
+        # channels = ['A', 'B', 'F', 'H']
+        channels = ['C', 'F']
 
         # Collect 500 ms of data
         # Total length of data = `samp_interval` * `buffer_size`
@@ -53,7 +65,7 @@ def main():
         # 3, 4, 5   - +- 100, 200, 500 mV
         # 6, 7, 8   - +- 1, 2, 5 V
         # 9, 10, 11 - +- 10, 20, 50 V
-        channel_range = 8
+        channel_range = 10
 
         # Initialize picoscope, then turn on the impulse signal
         initialize_pico(ps, status)
@@ -62,20 +74,25 @@ def main():
         # Capture data and then turn off
         # Time in specificed units, signal in mV
         tt, data = stream_data(ps, status, channels, channel_range, buffer_size, nbuffer, samp_interval, time_units)
-        tek.turn_off(_VISA_ADDRESS_tektronix)
-
-        # print(tt, data[0])
+        tek.turn_off(_VISA_ADDRESS_tektronix, channel=1)
+        tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
+        
+        # Plot the data
         plt.plot(tt/1e6, data[0])
         plt.plot(tt/1e6, data[1])
-        plt.plot(tt/1e6, data[2])
-        plt.plot(tt/1e6, data[3])
+        # plt.plot(tt/1e6, data[2])
+        # plt.plot(tt/1e6, data[3])
         plt.xlabel('Time (ms)')
         plt.ylabel('Signal (mV)')
         plt.show()
 
+        # Time in ms, data in mV
+        return tt/1e6, data
+
     else:
         # Turn it on and leave it on until interruption
-        tek.turn_on(_VISA_ADDRESS_tektronix)
+        tek.turn_on(_VISA_ADDRESS_tektronix, channel=1)
+        tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 
         i = 0
         while i < 260:
@@ -85,7 +102,8 @@ def main():
             except KeyboardInterrupt:
                 break
 
-        tek.turn_off(_VISA_ADDRESS_tektronix)
+        tek.turn_off(_VISA_ADDRESS_tektronix, channel=1)
+        tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
 
     print('Program ends')
 
