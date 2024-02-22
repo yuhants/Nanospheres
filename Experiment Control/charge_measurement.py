@@ -4,7 +4,7 @@ import time
 import src.RIGOL_control.DG822.DG822_control as rig
 import src.Tektronix_control.AFG1022.AFG1022_control as tek
 
-from PicoControl.take_data_pico import initialize_pico, stream_data
+# from PicoControl.take_data_pico import initialize_pico, stream_data
 
 """
 Charge calibration by applying a sinuisoidal E field at a fixed
@@ -21,29 +21,29 @@ TODO: need to add the bit that collects and analyses the data.
 
 ### Variables
 AMPLIFIED = True
-HV   = False  # Trigger HV supply
+HV   = False
 collect_data = False
 
-OFFSET = -10
+OFFSET = -5
 
-# FREQ = 65000  # Driving frequency in Hz
-# AMP  = 0.5
+# AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+# FREQ = 51000
+## Values at low pressure
+AMP  = 1
+FREQ = 60000  # Driving frequency in Hz
 
-FREQ = 62000
-AMP  = 10    # Peak-to-peak amplitude of the driving E field @ 1 mbar
-# AMP = 10
 
 if AMPLIFIED:
     AMP = AMP / 20
     OFFSET1 = OFFSET / -20
 else:
     OFFSET1 = OFFSET
-OFFSET2 = OFFSET
+OFFSET2 = OFFSET1
 
 VOLT = 1.05      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
               # I think this probably also maxes out around 1 kV as it can't supply more current.
-FREQ_PULSE = 0.25
+FREQ_PULSE = 0.35
 
 ### Don't change unless error with these values (e.g. does not connect)
 ### Can find out what the value should be using the following lines. You will have to figure out which resource is which instrument
@@ -58,9 +58,10 @@ if collect_data:
 
 # Connect to function generator and apply sine wave
 tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ, offset=OFFSET1, channel=1)
-tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
 tek.turn_on(_VISA_ADDRESS_tektronix, channel=1)
-tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
+if OFFSET != 0:
+    tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
+    tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 print('E field switched on')
 
 ## Tom likes to keep the E field on for a while
@@ -77,8 +78,8 @@ if HV:
     # Apply a *negative* impulse every five seconds
     # the signal is sent to the HV amplifier with a negative polarity
     DG822 = rig.FuncGen(_VISA_ADDRESS_rigol)
-    # DG822.pulse(amp=VOLT, duty=99.2, freq=FREQ_PULSE, off=-VOLT/2)
-    DG822.pulse(amp=VOLT, duty=50, freq=FREQ_PULSE, off=-VOLT/2)
+    DG822.pulse(amp=VOLT, duty=95, freq=FREQ_PULSE, off=-VOLT/2)
+    # DG822.pulse(amp=VOLT, duty=10, freq=FREQ_PULSE, off=-VOLT/2)
 
     # Ouput signals
     DG822.turn_on()

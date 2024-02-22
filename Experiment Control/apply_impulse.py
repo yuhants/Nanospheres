@@ -2,8 +2,8 @@ import numpy as np
 import src.Tektronix_control.AFG1022.AFG1022_control as tek
 
 import ctypes
-from picosdk.ps4000a import ps4000a as ps
-from picosdk.functions import adc2mV, assert_pico_ok
+# from picosdk.ps4000a import ps4000a as ps
+# from picosdk.functions import adc2mV, assert_pico_ok
 import matplotlib.pyplot as plt
 import time
 
@@ -18,11 +18,11 @@ import time
 
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 
-AMPLIFIED = False
+AMPLIFIED = True
 collect_data = False
 
 # Amplitude of impulse in V
-AMP  = 2
+AMP  = 25
 OFFSET = 0
 # ndata = 5
 
@@ -50,7 +50,7 @@ def main():
 
     if collect_data:
         # channels = ['A', 'B', 'F', 'H']
-        channels = ['C', 'F']
+        channels = ['C', 'G']
 
         # Collect 500 ms of data
         # Total length of data = `samp_interval` * `buffer_size`
@@ -95,7 +95,7 @@ def main():
         tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 
         i = 0
-        while i < 260:
+        while i < 500:
             try:
                 time.sleep(1)
                 i+=1
