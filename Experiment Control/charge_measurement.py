@@ -21,10 +21,10 @@ TODO: need to add the bit that collects and analyses the data.
 
 ### Variables
 AMPLIFIED = True
-HV   = True
+HV   = False
 collect_data = False
 
-OFFSET = -20
+OFFSET = 20
 
 AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
 FREQ = 70000
