@@ -21,16 +21,17 @@ TODO: need to add the bit that collects and analyses the data.
 
 ### Variables
 AMPLIFIED = True
-HV   = False
+HV   = True
 collect_data = False
 
-OFFSET = -5
+OFFSET = -20
 
-# AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
-# FREQ = 51000
+AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+FREQ = 70000
+
 ## Values at low pressure
-AMP  = 1
-FREQ = 60000  # Driving frequency in Hz
+# AMP  = 5
+# FREQ = 80000  # Driving frequency in Hz
 
 
 if AMPLIFIED:
@@ -43,7 +44,7 @@ OFFSET2 = OFFSET1
 VOLT = 1.05      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
               # I think this probably also maxes out around 1 kV as it can't supply more current.
-FREQ_PULSE = 0.35
+FREQ_PULSE = 0.2
 
 ### Don't change unless error with these values (e.g. does not connect)
 ### Can find out what the value should be using the following lines. You will have to figure out which resource is which instrument
@@ -79,7 +80,14 @@ if HV:
     # the signal is sent to the HV amplifier with a negative polarity
     DG822 = rig.FuncGen(_VISA_ADDRESS_rigol)
     DG822.pulse(amp=VOLT, duty=95, freq=FREQ_PULSE, off=-VOLT/2)
-    # DG822.pulse(amp=VOLT, duty=10, freq=FREQ_PULSE, off=-VOLT/2)
+    # DG822.pulse(amp=VOLT, duty=50, freq=FREQ_PULSE, off=-VOLT/2)
+
+    # Hold off 10 second before turning on HV so the lock in 
+    # could settle
+    i = 0
+    while i < 10:
+        time.sleep(1)
+        i+=1
 
     # Ouput signals
     DG822.turn_on()
@@ -98,7 +106,7 @@ if HV:
 
 # Have the E field on for a while
 i = 0
-while i < 200:
+while True:
     try:
         time.sleep(1)
         i+=1

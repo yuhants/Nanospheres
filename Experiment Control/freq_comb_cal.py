@@ -7,7 +7,7 @@ import time
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 
 AMPLIFIED = True
-OFFSET = -10
+OFFSET = 0
 
 # DO NOT change the `FREQ` parameter
 # the comb timestream is generated assuming 100 Hz repetition rate
@@ -27,7 +27,7 @@ else:
 OFFSET2 = OFFSET
 
 # freq_comb_file = r"C:\Users\microspheres\Documents\Python Scripts\Experiment Control\freq_comb_20khz_70khz_deltaf5khz.npz"
-freq_comb_file = r"C:\Users\microspheres\Documents\Python Scripts\Experiment Control\freq_comb_20khz_70khz_deltaf2khz.npz"
+freq_comb_file = r"C:\Users\yuhan\nanospheres\Experiment Control\freq_comb_20khz_70khz_deltaf2khz.npz"
 
 def norm_amp(amp, signal):
     """Normalized driving amplitude"""

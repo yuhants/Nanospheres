@@ -1256,7 +1256,7 @@ def impulse(address: str, amplitude=5, frequency=100, offset=0.5, channel=1):
             print(f"  {i}: {wav}")
 
         # Transfer the waveform
-        fgen.set_custom_waveform(signal, memory_num=100, verify=False)
+        fgen.set_custom_waveform(signal, memory_num=100, verify=True)
         print("New waveform catalogue:")
         for i, wav in enumerate(fgen.get_waveform_catalogue()):
             print(f"  {i}: {wav}")

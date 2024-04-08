@@ -22,7 +22,7 @@ AMPLIFIED = True
 collect_data = False
 
 # Amplitude of impulse in V
-AMP  = 25
+AMP  = 60
 OFFSET = 0
 # ndata = 5
 
