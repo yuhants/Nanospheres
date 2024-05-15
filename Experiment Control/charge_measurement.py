@@ -24,14 +24,14 @@ AMPLIFIED = True
 HV   = False
 collect_data = False
 
-OFFSET = 20
+OFFSET = 0
 
-AMP  = 20    # Peak-to-peak amplitude of the driving E field @ 1 mbar
-FREQ = 70000
+AMP  = 60    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+FREQ = 70000 # Driving frequency in Hz
 
-## Values at low pressure
-# AMP  = 5
-# FREQ = 80000  # Driving frequency in Hz
+# ## Values at low pressure
+# AMP  = 40
+# FREQ = 100000
 
 
 if AMPLIFIED:
@@ -114,6 +114,7 @@ while True:
         break
 
 tek.turn_off(_VISA_ADDRESS_tektronix, channel=1)
-tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
+if OFFSET != 0:
+    tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
 print('E field switched off')
 print('Program ends')
