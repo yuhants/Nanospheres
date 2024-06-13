@@ -1274,6 +1274,43 @@ def impulse(address: str, amplitude=5, frequency=100, offset=0.5, channel=1):
         # Print current settings
         fgen.print_settings()
 
+def impulse_afg1062(address: str, amplitude=5, frequency=100, offset=0.5, channel=1):
+    # Create a sharpest possible impulse
+    # Make only 1 out of 8000 points non zero
+    total_pt = 500000
+    x = np.linspace(0, 4 * np.pi, total_pt)
+    # signal = np.sin(x)
+    signal = np.zeros_like(x)
+    signal[int(total_pt/2):int(total_pt/2)+1] = -100
+    # signal[0] = -1.0
+
+
+    # Create initialise fgen if it was not supplied
+    with FuncGen(address) as fgen:
+
+        print("Current waveform catalogue")
+        for i, wav in enumerate(fgen.get_waveform_catalogue()):
+            print(f"  {i}: {wav}")
+
+        # Transfer the waveform
+        fgen.set_custom_waveform(signal, memory_num=5, verify=True)
+        print("New waveform catalogue:")
+        for i, wav in enumerate(fgen.get_waveform_catalogue()):
+            print(f"  {i}: {wav}")
+            
+        print(f"Set new wavefrom to channel {channel}..", end=" ")
+        fgen.channels[channel - 1].set_output_state("OFF")
+        fgen.channels[channel - 1].set_function("USER5") # because of `memory_num` above
+        fgen.channels[channel - 1].set_amplitude(amplitude)
+        fgen.channels[channel - 1].set_offset(offset, unit="V")
+        fgen.channels[channel - 1].set_burst(ncycle=1)
+
+        # fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
+        print("ok")
+        
+        # Print current settings
+        fgen.print_settings()
+
 def freq_comb(address: str, signal, amplitude=1, frequency=100, offset=0, channel=1):
 
     # Create initialise fgen if it was not supplied

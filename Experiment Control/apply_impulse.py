@@ -8,6 +8,8 @@ import matplotlib.pyplot as plt
 import time
 
 #
+# Last update
+#
 # At the moment `Trigger Inteval` (burst period) that defines the interval between
 # pulses has to be manually set on AFG1022
 # The current value is set to 300 ms, i.e., the pulses are at least 300 ms apart
@@ -17,12 +19,13 @@ import time
 #
 
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
+# _VISA_ADDRESS_tektronix = 'USB0::0x0699::0x0353::2328304::INSTR'
 
 AMPLIFIED = True
 collect_data = False
 
 # Amplitude of impulse in V
-AMP  = 60
+AMP  = 1
 OFFSET = 0
 # ndata = 5
 
@@ -45,6 +48,7 @@ def main():
     # Connect to function generator and transfer custom impulse
     # For some reason the transfer will fail at the first time - just run again
     tek.impulse(_VISA_ADDRESS_tektronix, amplitude=AMP, offset=OFFSET1-AMP/2, channel=1)
+    # tek.impulse_afg1062(_VISA_ADDRESS_tektronix, amplitude=AMP, offset=OFFSET1-AMP/2, channel=1)
     tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
     # tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=1, frequency=20000)
 
@@ -92,7 +96,8 @@ def main():
     else:
         # Turn it on and leave it on until interruption
         tek.turn_on(_VISA_ADDRESS_tektronix, channel=1)
-        tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
+        if OFFSET2 != 0:
+            tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 
         i = 0
         while i < 500:
@@ -103,7 +108,8 @@ def main():
                 break
 
         tek.turn_off(_VISA_ADDRESS_tektronix, channel=1)
-        tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
+        if OFFSET2 != 0:
+            tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
 
     print('Program ends')
 

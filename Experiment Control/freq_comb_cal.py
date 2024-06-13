@@ -12,7 +12,7 @@ OFFSET = 0
 # DO NOT change the `FREQ` parameter
 # the comb timestream is generated assuming 100 Hz repetition rate
 # CAUTION: too large amplitude will knock the sphere out
-AMP  = 0.25  # Intended peak-to-peak voltage *for each frequency applied*
+AMP  = 25  # Intended peak-to-peak voltage *for each frequency applied*
 # AMP = 10
 
 FREQ = 100
@@ -27,7 +27,7 @@ else:
 OFFSET2 = OFFSET
 
 # freq_comb_file = r"C:\Users\microspheres\Documents\Python Scripts\Experiment Control\freq_comb_20khz_70khz_deltaf5khz.npz"
-freq_comb_file = r"C:\Users\yuhan\nanospheres\Experiment Control\freq_comb_20khz_70khz_deltaf2khz.npz"
+freq_comb_file = r"C:\Users\yuhan\nanospheres\Experiment Control\freq_comb_10khz_60khz_deltaf2khz.npz"
 
 def norm_amp(amp, signal):
     """Normalized driving amplitude"""
@@ -41,9 +41,9 @@ AMP_NORM = norm_amp(AMP, signal)
 
 # Connect to function generator and apply custom impulse
 tek.freq_comb(_VISA_ADDRESS_tektronix, signal=signal, amplitude=AMP_NORM, frequency=FREQ, offset=OFFSET1, channel=1)
-tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
+#tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
 tek.turn_on(_VISA_ADDRESS_tektronix, channel=1)
-tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
+#tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 print('Frequency comb switched on')
 
 if collect_data:

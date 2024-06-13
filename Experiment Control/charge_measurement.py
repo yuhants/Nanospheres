@@ -24,22 +24,30 @@ AMPLIFIED = True
 HV   = False
 collect_data = False
 
-OFFSET = 0
+# DC bias in V
+OFFSET1 = 0
+OFFSET2 = 0
+# OFFSET1 = 60
+# OFFSET2 = 60
+# OFFSET1 = -10
+# OFFSET2 = -10
 
-AMP  = 60    # Peak-to-peak amplitude of the driving E field @ 1 mbar
-FREQ = 70000 # Driving frequency in Hz
+# AMP  = 60    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+# FREQ = 70000 # Driving frequency in Hz
 
 # ## Values at low pressure
-# AMP  = 40
-# FREQ = 100000
+AMP  = 20
+FREQ = 98000
 
 
 if AMPLIFIED:
     AMP = AMP / 20
-    OFFSET1 = OFFSET / -20
+    OFFSET1 = OFFSET1 / -20
+    OFFSET2 = OFFSET2 / -20
 else:
-    OFFSET1 = OFFSET
-OFFSET2 = OFFSET1
+    OFFSET1 = OFFSET1
+    OFFSET2 = OFFSET2
+
 
 VOLT = 1.05      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
@@ -60,7 +68,7 @@ if collect_data:
 # Connect to function generator and apply sine wave
 tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ, offset=OFFSET1, channel=1)
 tek.turn_on(_VISA_ADDRESS_tektronix, channel=1)
-if OFFSET != 0:
+if OFFSET2 != 0:
     tek.dc_offset(_VISA_ADDRESS_tektronix, offset=OFFSET2, channel=2)
     tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 print('E field switched on')
@@ -114,7 +122,7 @@ while True:
         break
 
 tek.turn_off(_VISA_ADDRESS_tektronix, channel=1)
-if OFFSET != 0:
+if OFFSET2 != 0:
     tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
 print('E field switched off')
 print('Program ends')
