@@ -1,5 +1,22 @@
 import numpy as np
 import scipy.io as sio
+from scipy.signal import welch
+
+####
+#### Loading matlab files
+####
+def load_timestreams(file, channels=['C']):
+    data = sio.loadmat(file)
+    length = data['Length'][0,0]
+    delta_t = data['Tinterval'][0,0]
+
+    tt = np.arange(length*delta_t, step=delta_t)
+    timestreams = []
+    for c in channels:
+        timestreams.append(data[c][:,0])
+
+    return delta_t, tt, timestreams
+    
 
 def load_charging_files(file_list):
     length = 0
@@ -41,4 +58,15 @@ def load_impulse_cal_files(file_list):
 
     return tt, xx, yy, zz, vv
 
-    return tt, aa, pp
+#####
+def get_psd(dt=None, tt=None, zz=None):
+    if dt is not None:
+        fs = int(np.round(1 / dt))
+    elif tt is not None:
+        fs = int(np.ceil(1 / (tt[1] - tt[0])))
+    else:
+        raise SyntaxError('Need to supply either `dt` or `tt`.')
+    
+    nperseg = fs / 10
+    ff, pp = welch(zz, fs=fs, nperseg=nperseg)
+    return ff, pp
