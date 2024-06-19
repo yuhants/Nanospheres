@@ -25,13 +25,24 @@ def get_area_psd(phi, prefix, prefix2, nfile, channel='C', passband=(60000, 8000
     return area, std_area
 
 def main():
-    phiphi = [0, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330]
 
-    prefix = r"D:\cooling\20240618_phase_scan_0_1mbar"
-    prefix2 = r"\20240618_zscan_phase"
-    channel = 'C'
-    passband = (60000, 68000)
-    nfile = 6
+    # prefix = r"D:\cooling\20240618_phase_scan_0_1mbar"
+
+    # phiphi = [0, 60 ,120, 150, 180, 210, 240, 300]
+    # prefix2 = r"\20240619_yscan_phase"
+    # channel = 'A'
+    # passband = (343000, 360000)
+
+    phiphi = [270, 290, 310, 330, 350]
+    prefix = r"D:\cooling\20240619_phase_scan_3e-4mbar"
+    prefix2 = r"\20240619_xscan_phase"
+    channel = 'B'
+    passband = (255000, 274000)
+
+    # prefix2 = r"\20240618_zscan_phase"
+    # channel = 'C'
+    # passband = (60000, 68000)
+    nfile = 4
 
     area_phi = np.empty(len(phiphi), dtype=np.float32)
     std_area_phi = np.empty(len(phiphi), dtype=np.float32)
