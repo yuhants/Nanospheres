@@ -59,7 +59,7 @@ def load_impulse_cal_files(file_list):
     return tt, xx, yy, zz, vv
 
 #####
-def get_psd(dt=None, tt=None, zz=None):
+def get_psd(dt=None, tt=None, zz=None, nperseg=None):
     if dt is not None:
         fs = int(np.round(1 / dt))
     elif tt is not None:
@@ -67,6 +67,7 @@ def get_psd(dt=None, tt=None, zz=None):
     else:
         raise SyntaxError('Need to supply either `dt` or `tt`.')
     
-    nperseg = fs / 10
+    if nperseg is None:
+        nperseg = fs / 10
     ff, pp = welch(zz, fs=fs, nperseg=nperseg)
     return ff, pp

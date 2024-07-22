@@ -45,9 +45,9 @@ def get_area_driven_peak(prefix, prefix2, nfile, channel='C', passband=(88900, 8
     return np.mean(v2_drive), np.std(v2_drive)
 
 
-net_charge = 1  # +-e
+net_charge = 2  # +-e
 drive_freq = 89000  # Hz
-drive_amp  = 35     # V; peak to peak
+drive_amp  = 1     # V; peak to peak
 efield_sim = 120    # Simulated E field at focus
                     # V/m when potential diff is 1 V
 

@@ -11,7 +11,8 @@ def get_area_psd(phi, prefix, prefix2, nfile, channel='C', passband=(60000, 8000
     
     for i in range(nfile):
         # fname = f"{prefix}{prefix2}{phi}{prefix2}{phi}_{i+1:02d}.mat"
-        fname = f"{prefix}{prefix2}{phi}{prefix2}{phi}_{i+1:01d}.mat"
+        # fname = f"{prefix}{prefix2}{phi}{prefix2}{phi}_{i+1:01d}.mat"
+        fname = f"{prefix}{prefix2}{phi}.mat"
         data = sio.loadmat(fname)
         
         fs = int(np.floor(1 / data['Tinterval'][0, 0]))
@@ -26,23 +27,29 @@ def get_area_psd(phi, prefix, prefix2, nfile, channel='C', passband=(60000, 8000
 
 def main():
 
-    # prefix = r"D:\cooling\20240618_phase_scan_0_1mbar"
+    prefix = r"D:\cooling\20240717_phase_scan_0_1mbar"
 
-    # phiphi = [0, 60 ,120, 150, 180, 210, 240, 300]
-    # prefix2 = r"\20240619_yscan_phase"
+    # phiphi = [0, 60, 120, 180, 240, 300]
+    # prefix2 = r"\20240717_yscan_phase"
     # channel = 'A'
-    # passband = (343000, 360000)
+    # passband = (340000, 365000)
 
-    phiphi = [270, 290, 310, 330, 350]
-    prefix = r"D:\cooling\20240619_phase_scan_3e-4mbar"
-    prefix2 = r"\20240619_xscan_phase"
-    channel = 'B'
-    passband = (255000, 274000)
+    # phiphi = [0, 60, 120, 180, 240, 300, 330]
+    # prefix2 = r"\20240717_xscan_phase"
+    # channel = 'B'
+    # passband = (240000, 280000)
 
-    # prefix2 = r"\20240618_zscan_phase"
+    phiphi = [0, 60, 120, 180, 240, 300]
+    prefix2 = r"\20240717_zscan_phase"
+    channel = 'C'
+    passband = (50000, 75000)
+
+    # phiphi = [0, 60, 120, 180, 240, 300]
+    # prefix2 = r"\20240717_zbscan_phase"
     # channel = 'C'
-    # passband = (60000, 68000)
-    nfile = 4
+    # passband = (50000, 70000)
+
+    nfile = 1
 
     area_phi = np.empty(len(phiphi), dtype=np.float32)
     std_area_phi = np.empty(len(phiphi), dtype=np.float32)

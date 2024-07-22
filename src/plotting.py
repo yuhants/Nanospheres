@@ -1,6 +1,21 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+def load_plotting_config():
+    from cycler import cycler
+    colors=['#fe9f6d', '#de4968', '#8c2981', '#3b0f70', '#000004']
+    default_cycler = cycler(color=['#fe9f6d', '#de4968', '#8c2981', '#3b0f70', '#000004'])
+
+    params = {'figure.figsize': (7, 3),
+            'axes.prop_cycle': default_cycler,
+            'axes.titlesize': 14,
+            'legend.fontsize': 12,
+            'axes.labelsize': 14,
+            'axes.titlesize': 14,
+            'xtick.labelsize': 12,
+            'ytick.labelsize': 12}
+    plt.rcParams.update(params)
+
 def plot_pulse_cal_data(tt, zz, vv, figsize=(10, 8), n_plots=5, colors=['#feb078', '#f1605d'],
                         xlabel=None, ylabel=None, ylabel_twin=None, title=None):
     # Assume time is recorded in second
