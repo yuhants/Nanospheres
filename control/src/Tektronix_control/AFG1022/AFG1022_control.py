@@ -1316,22 +1316,20 @@ def freq_comb(address: str, signal, amplitude=1, frequency=100, offset=0, channe
     # Create initialise fgen if it was not supplied
     with FuncGen(address) as fgen:
 
-        print("Current waveform catalogue")
-        for i, wav in enumerate(fgen.get_waveform_catalogue()):
-            print(f"  {i}: {wav}")
+        # print("Current waveform catalogue")
+        # for i, wav in enumerate(fgen.get_waveform_catalogue()):
+        #     print(f"  {i}: {wav}")
 
         # Transfer the waveform
         # Load signal into the waveform generator
-        fgen.set_custom_waveform(signal, memory_num=200, verify=True)
-        print("New waveform catalogue:")
-        for i, wav in enumerate(fgen.get_waveform_catalogue()):
-            print(f"  {i}: {wav}")
+        fgen.set_custom_waveform(signal, memory_num=20, verify=False)
+        # print("New waveform catalogue:")
+        # for i, wav in enumerate(fgen.get_waveform_catalogue()):
+        #     print(f"  {i}: {wav}")
             
         print(f"Set new wavefrom to channel {channel}..", end=" ")
-        # TODO
-        # implement burst mode here
         fgen.channels[channel - 1].set_output_state("OFF")
-        fgen.channels[channel - 1].set_function("USER200") # because of `memory_num` above
+        fgen.channels[channel - 1].set_function("USER20") # because of `memory_num` above
         fgen.channels[channel - 1].set_amplitude(amplitude)
         fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
         fgen.channels[channel - 1].set_offset(offset, unit="V")

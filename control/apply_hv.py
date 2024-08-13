@@ -5,7 +5,7 @@ import src.RIGOL_control.DG822.DG822_control as rig
 VOLT = 1.05      # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
               # I think this probably also maxes out around 1 kV as it can't supply more current.
-FREQ_PULSE = 0.5
+FREQ_PULSE = 0.2
 
 _VISA_ADDRESS_rigol = "USB0::0x1AB1::0x0643::DG8A204201834::INSTR"
 DG822 = rig.FuncGen(_VISA_ADDRESS_rigol)

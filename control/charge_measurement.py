@@ -25,19 +25,19 @@ HV   = False
 collect_data = False
 
 # DC bias in V
-OFFSET1 = 0
-OFFSET2 = 0
+# OFFSET1 = 0
+# OFFSET2 = 0
 # OFFSET1 = 60
 # OFFSET2 = 60
-# OFFSET1 = -30
-# OFFSET2 = -30
+OFFSET1 = -40
+OFFSET2 = -40
 
-# AMP  = 60    # Peak-to-peak amplitude of the driving E field @ 1 mbar
-# FREQ = 69000 # Driving frequency in Hz
+AMP  = 100    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+FREQ = 81000 # Driving frequency in Hz
 
 # ## Values at low pressure
-AMP  = 5
-FREQ = 91000
+# AMP  = 5
+# FREQ = 97000
 
 
 if AMPLIFIED:

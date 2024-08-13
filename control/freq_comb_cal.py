@@ -4,15 +4,16 @@ import matplotlib.pyplot as plt
 import src.Tektronix_control.AFG1022.AFG1022_control as tek
 import time
 
-_VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
+_VISA_ADDRESS_tektronix = 'USB0::0x0699::0x0353::2328304::INSTR'
+# _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 
-AMPLIFIED = True
+AMPLIFIED = False
 OFFSET = 0
 
 # DO NOT change the `FREQ` parameter
 # the comb timestream is generated assuming 100 Hz repetition rate
 # CAUTION: too large amplitude will knock the sphere out
-AMP  = 25  # Intended peak-to-peak voltage *for each frequency applied*
+AMP  = 0.005  # Intended peak-to-peak voltage *for each frequency applied*
 # AMP = 10
 
 FREQ = 100
@@ -26,8 +27,7 @@ else:
     OFFSET1 = OFFSET
 OFFSET2 = OFFSET
 
-# freq_comb_file = r"C:\Users\microspheres\Documents\Python Scripts\Experiment Control\freq_comb_20khz_70khz_deltaf5khz.npz"
-freq_comb_file = r"C:\Users\yuhan\nanospheres\Experiment Control\freq_comb_10khz_60khz_deltaf2khz.npz"
+freq_comb_file = r"C:\Users\yuhan\nanospheres\control\freq_comb_50khz_100khz_deltaf10khz.npz"
 
 def norm_amp(amp, signal):
     """Normalized driving amplitude"""
@@ -38,6 +38,7 @@ comb_data = np.load(freq_comb_file, allow_pickle=True)
 signal = comb_data['sig']
 
 AMP_NORM = norm_amp(AMP, signal)
+print(AMP_NORM)
 
 # Connect to function generator and apply custom impulse
 tek.freq_comb(_VISA_ADDRESS_tektronix, signal=signal, amplitude=AMP_NORM, frequency=FREQ, offset=OFFSET1, channel=1)
