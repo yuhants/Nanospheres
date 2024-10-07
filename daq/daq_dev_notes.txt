@@ -1,0 +1,7 @@
+20241006:
+Kept getting error when running `from picosdk.ps4000a import ps4000a as ps` in a python script:
+picosdk.errors.CannotOpenPicoSDKError: PicoSDK (ps4000a) not compatible (check 32 vs 64-bit): [WinError 193] %1 is not a valid Win32 application
+
+It turns out the library path picked up by the code `C:\Users\yuhan\anaconda3\envs\nanospheres\lib\site-packages\picosdk\library.py` is `C:\Program Files (x86)\Pico Technology\PicoScope6\ps4000a.dll`, which is a 32-bit library from the previously installed Picoscope 6 GUI.
+
+Ended up manually setting which library to use in `Library._load()` to `C:\Program Files\Pico Technology\SDK\lib\ps4000a.dll` and the problem is solved.

@@ -16,16 +16,16 @@ match expectation.
 Applied to data taken with picoscope setting 100 ms/div, 1 MS
 """
 
-drive_freq = 81000  # Hz
-lb_d, ub_d = 8090, 8110
+drive_freq = 67000  # Hz
+lb_d, ub_d = 6690, 6710
 
-drive_amp  = 100      # V; peak to peak
+drive_amp  = 80      # V; peak to peak
 efield_sim = 120    # Simulated E field at focus
                     # V/m when potential diff is 1 V
 nsphere    = 1
 
-file_1mbar  = r"D:\calibration\20240812_noefield_1mbar_p2.mat"
-file_driven = r"D:\calibration\20240812_1e_100vp2p_81khz_1mbar_p2.mat"
+file_1mbar  = r"D:\calibration\20241006_noefield_1mbar.mat"
+file_driven = r"D:\calibration\20241006_1e_80vp2p_67khz_1mbar.mat"
 
 plot = True
 
@@ -48,7 +48,7 @@ def main():
     ffd, ppd = get_psd(dt=dtd, zz=zzd[0])
 
     # Fit thermally driven peak to a Lorentzian
-    lb, ub = 6000, 10000
+    lb, ub = 5000, 8000
     popt, omega_fit, p_fit = fit_peak(ff0[lb:ub]*2*np.pi, pp0[lb:ub], peak_func, p0=[5e9, 64000*2*np.pi, 8000])
     amp, omega0, gamma = popt[0], popt[1], popt[2]
     print(f'Amplitude: {amp}, central frequency: {omega0/(2*np.pi)} Hz, gamma: {gamma/(2*np.pi)} Hz')

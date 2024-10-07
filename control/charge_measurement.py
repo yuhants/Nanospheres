@@ -20,24 +20,26 @@ TODO: need to add the bit that collects and analyses the data.
 """
 
 ### Variables
-AMPLIFIED = True
+# AMPLIFIED = True
+AMPLIFIED = False
+
 HV   = False
 collect_data = False
 
 # DC bias in V
-# OFFSET1 = 0
-# OFFSET2 = 0
+OFFSET1 = 0.01
+OFFSET2 = 0.01
 # OFFSET1 = 60
 # OFFSET2 = 60
-OFFSET1 = -40
-OFFSET2 = -40
+# OFFSET1 = -40
+# OFFSET2 = -40
 
-AMP  = 100    # Peak-to-peak amplitude of the driving E field @ 1 mbar
-FREQ = 81000 # Driving frequency in Hz
+# AMP  = 80    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+# FREQ = 67000 # Driving frequency in Hz
 
-# ## Values at low pressure
-# AMP  = 5
-# FREQ = 97000
+## Values at low pressure
+AMP  = 1
+FREQ = 89000
 
 
 if AMPLIFIED:
@@ -61,9 +63,6 @@ FREQ_PULSE = 0.2
 
 _VISA_ADDRESS_rigol = "USB0::0x1AB1::0x0643::DG8A204201834::INSTR"
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
-
-if collect_data:
-    pass
 
 # Connect to function generator and apply sine wave
 tek.sine_wave(_VISA_ADDRESS_tektronix, amplitude=AMP, frequency=FREQ, offset=OFFSET1, channel=1)
