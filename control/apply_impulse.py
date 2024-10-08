@@ -18,7 +18,7 @@ _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 AMPLIFIED = False
 
 # Amplitude of impulse in V
-AMP  = 10
+AMP  = 9
 OFFSET = 0.01
 
 if AMPLIFIED:
@@ -42,7 +42,7 @@ def main():
         tek.turn_on(_VISA_ADDRESS_tektronix, channel=2)
 
     i = 0
-    while i < 500:
+    while i < 1000:
         try:
             time.sleep(1)
             i+=1

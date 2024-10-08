@@ -6,19 +6,24 @@ from picosdk.ps4000a import ps4000a as ps
 from picosdk.functions import adc2mV, assert_pico_ok
 import time
 
+import os
 import h5py
 
+save = True
+plot = False
+
+channelInputRanges = np.array([10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000])
 # Data collection settings
-channels = ['D', 'E']
+channels = ['D']
 # Digitization range (0-11): 10, 20, 50, 100, 200, 500 (mV), 1, 2, 5, 10, 20, 50 (V)
-channel_ranges = [6, 7]
+channel_ranges = np.array([6])
 analog_offsets = None
 
 # Total length of data = `sample_interval`*`buffer_size`*`n_buffer`
 n_buffer = 1  # Number of buffer to capture
-buffer_size = int(1e7)
+buffer_size = int(2e7)
 
-sample_interval = 400
+sample_interval = 250
 sample_units = 'PS4000A_NS'
 
 # Variables
@@ -46,28 +51,33 @@ def main():
     # Create buffer that stores the data
     set_data_buffers(chandle, status, channels, buffer_size)
 
-    # Start streaming
-    for i in range(3):
+    # Start streaming and save data
+    if save:
+        file_directory = r"D:\dm_data\20241008_short_timetrace"
+        if not os.path.isdir(file_directory):
+            os.mkdir(file_directory)
+
+    for i in range(120):
         dt, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
 
-        file_name = rf'D:\h5test_{i}.hdf5'
-        with h5py.File(file_name, 'w') as f:
-            print(f'Saving file {file_name}')
+        if save:
+            file_name = rf'20241008_streaming_d_{i}.hdf5'
+            with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
+                print(f'Writing file {file_name}')
 
-            dd = f.create_dataset('channel_d', data=data[0], dtype='f')
-            ee = f.create_dataset('channel_e', data=data[1], dtype='f')
+                dd = f.create_dataset('channel_d', data=data[0], dtype='f')
 
-            for dataset in [dd, ee]:
-                dataset.attrs['delta_t'] = dt*time_dict[sample_units]
+                for dataset in [dd]:
+                    dataset.attrs['delta_t'] = dt*time_dict[sample_units]
+                    dataset.attrs['unit'] = 'mV'
 
-            f.close()
-
-        # tt = np.arange(start=0, stop=dt*data.shape[1], step=dt*time_dict[sample_units])
-        # plt.plot(tt, data[0])
-        # plt.plot(tt, data[1])
-        # plt.xlabel('Time (us)')
-        # plt.ylabel('Signal (mV)')
-        # plt.show()
+                f.close()
+        if plot:
+            plt.plot(data[0])
+            plt.plot(data[1])
+            plt.xlabel(f'Index (interval={dt} {sample_units})')
+            plt.ylabel('Signal (mV)')
+            plt.show()
 
     # # Time in ms, data in mV
     # return tt/1e6, data
@@ -114,7 +124,8 @@ def set_data_buffers(chandle, status, channels, buffer_size):
     memory_segment = 0
 
     # Create buffers ready for assigning pointers for data collection
-    one_buffer = np.zeros(shape=(len(channels), buffer_size), dtype=np.int16)
+    if one_buffer is None:
+        one_buffer = np.zeros(shape=(len(channels), buffer_size), dtype=np.int16)
 
     for i, channel in enumerate(channels):
         status_prefix_buff = f'setDataBuffers{channel}'
@@ -136,7 +147,8 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     sizeOfOneBuffer = buffer_size
     numBuffersToCapture = n_buffer
     totalSamples = sizeOfOneBuffer * numBuffersToCapture
-    total_buffer = np.zeros(shape=(len(channel_ranges), totalSamples), dtype=np.int16)
+    if total_buffer is None:
+        total_buffer = np.zeros(shape=(len(channel_ranges), totalSamples), dtype=np.int16)
 
     sampleInterval = ctypes.c_int32(sample_interval)
     sampleUnits = ps.PS4000A_TIME_UNITS[sample_units]
@@ -177,7 +189,7 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
             # If we weren't called back by the driver, this means no data is ready. Sleep for a short while before trying
             # again.
             time.sleep(0.01)
-    print("Done grabbing values.")
+    print('Done grabbing values')
 
     # Find maximum ADC count value
     maxADC = ctypes.c_int16()
@@ -185,9 +197,19 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     assert_pico_ok(status["maximumValue"])
 
     # Convert ADC counts data to physical values
+    # print(f'maxADC: {maxADC.value}')
+    adc2mV_conversion_factors = channelInputRanges[channel_ranges] / maxADC.value
+
     data = np.empty_like(total_buffer)
-    for i in range(len(channels)):
-        data[i] = adc2mV(total_buffer[i], channel_ranges[i], maxADC)
+    for i, factor in enumerate(adc2mV_conversion_factors):
+        data[i] = factor * total_buffer[i]
+    #
+    # 20241008: skip using the `adc2mV` method provided by picoscope
+    # because the list operation is very slow
+    #
+    # data = np.empty_like(total_buffer)
+    # for i in range(len(channels)):
+    #     data[i] = adc2mV(total_buffer[i], channel_ranges[i], maxADC)
 
     return actualSampleInterval, data
 
