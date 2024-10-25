@@ -67,6 +67,7 @@ def get_psd(dt=None, tt=None, zz=None, nperseg=None):
     else:
         raise SyntaxError('Need to supply either `dt` or `tt`.')
     
+    print(fs)
     if nperseg is None:
         nperseg = fs / 10
     ff, pp = welch(zz, fs=fs, nperseg=nperseg)

@@ -2,7 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from scipy.optimize import curve_fit
-
 from utils import load_timestreams, get_psd
 
 """
@@ -16,16 +15,16 @@ match expectation.
 Applied to data taken with picoscope setting 100 ms/div, 1 MS
 """
 
-drive_freq = 67000  # Hz
-lb_d, ub_d = 6690, 6710
+drive_freq = 64000  # Hz
+lb_d, ub_d = 6390, 6410
 
 drive_amp  = 80      # V; peak to peak
 efield_sim = 120    # Simulated E field at focus
                     # V/m when potential diff is 1 V
-nsphere    = 1
+nsphere    = 2
 
-file_1mbar  = r"D:\calibration\20241006_noefield_1mbar.mat"
-file_driven = r"D:\calibration\20241006_1e_80vp2p_67khz_1mbar.mat"
+file_1mbar  = r"D:\calibration\20241014_noefield_1mbar.mat"
+file_driven = r"D:\calibration\20241014_3e_80vp2p_64khz_1mbar.mat"
 
 plot = True
 
@@ -44,6 +43,7 @@ def main():
     dt0, tt0, zz0 = load_timestreams(file_1mbar)
     dtd, ttd, zzd = load_timestreams(file_driven)
 
+    print(zzd)
     ff0, pp0 = get_psd(dt=dt0, zz=zz0[0])
     ffd, ppd = get_psd(dt=dtd, zz=zzd[0])
 

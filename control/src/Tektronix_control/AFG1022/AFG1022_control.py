@@ -1221,46 +1221,63 @@ class FuncGenChannel:
         self._fgen.write(
             f"{self._source}BURSt:NCYCles {ncycle}",
             custom_err_message=f"burst number of cycles",
-        )        
+        )
+    
+    def set_burst_off(self):
+        self._fgen.write(
+                    f"{self._source}BURSt:STATe OFF",
+                    custom_err_message=f"burst mode off",
+                )
         
 def sine_wave(address: str, amplitude = 1, frequency = 20000, offset = 0, channel = 1):
     """Changes channel input to sin wave with input frequency, offset and pk-pk amplitude"""
-    with FuncGen(address) as fgen:
+    with FuncGen(address, verbose=False) as fgen:
         fgen.channels[channel - 1].set_function("SIN")
         fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
         fgen.channels[channel - 1].set_offset(offset, unit="V")
         fgen.channels[channel - 1].set_amplitude(amplitude)
+        fgen.channels[channel - 1].set_burst_off()
 
 def dc_offset(address: str, offset=-5, channel=2):
     # x = np.linspace(0, 4 * np.pi, 8192)
     # signal = np.oness_like(x)
-    with FuncGen(address) as fgen:
+    with FuncGen(address, verbose=False) as fgen:
         fgen.channels[channel - 1].set_function("DC")
         # fgen.channels[channel - 1].set_amplitude(0.002)
         fgen.channels[channel - 1].set_offset(offset, unit="V")
 
-def impulse(address: str, amplitude=5, frequency=100, offset=0.5, channel=1):
-    # Create a sharpest possible impulse
-    # Make only 1 out of 8000 points non zero
+def impulse(address: str, amplitude=5, offset=0.5, channel=1):
+    # Create a sharp impulse
+    # Make only 200 out of 8000 points non zero
     x = np.linspace(0, 4 * np.pi, 8192)
     signal = np.zeros_like(x)
+    # signal[4000:4075] = -100
     signal[4000:4200] = -100
     # signal[4000:8000] = -100
-    # signal[0] = -1.0
 
+    upload_waveform = False
 
     # Create initialise fgen if it was not supplied
-    with FuncGen(address) as fgen:
+    with FuncGen(address, verbose=False) as fgen:
+        # If impulse waveform already uploaded, verify if
+        # it's the same with the one above
+        waveform_catalogue = fgen.get_waveform_catalogue()
+        if any('USER100' in x for x in waveform_catalogue):
+            verif = fgen._verify_waveform(
+                                signal,
+                                100,
+                                normalise=True,
+                                print_result=False,
+                            )
+            if not verif[0]:
+                upload_waveform = True
 
-        print("Current waveform catalogue")
-        for i, wav in enumerate(fgen.get_waveform_catalogue()):
-            print(f"  {i}: {wav}")
-
-        # Transfer the waveform
-        fgen.set_custom_waveform(signal, memory_num=100, verify=True)
-        print("New waveform catalogue:")
-        for i, wav in enumerate(fgen.get_waveform_catalogue()):
-            print(f"  {i}: {wav}")
+        # If the waveform is not there, transfer the waveform
+        if upload_waveform:
+            fgen.set_custom_waveform(signal, memory_num=100, verify=True)
+            print("New waveform catalogue:")
+            for i, wav in enumerate(fgen.get_waveform_catalogue()):
+                print(f"  {i}: {wav}")
             
         print(f"Set new wavefrom to channel {channel}..", end=" ")
         fgen.channels[channel - 1].set_output_state("OFF")
@@ -1268,49 +1285,8 @@ def impulse(address: str, amplitude=5, frequency=100, offset=0.5, channel=1):
         fgen.channels[channel - 1].set_amplitude(amplitude)
         fgen.channels[channel - 1].set_offset(offset, unit="V")
         fgen.channels[channel - 1].set_burst(ncycle=1)
-
-        # fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
-        print("ok")
         
-        # Print current settings
-        fgen.print_settings()
-
-def impulse_afg1062(address: str, amplitude=5, frequency=100, offset=0.5, channel=1):
-    # Create a sharpest possible impulse
-    # Make only 1 out of 8000 points non zero
-    total_pt = 500000
-    x = np.linspace(0, 4 * np.pi, total_pt)
-    # signal = np.sin(x)
-    signal = np.zeros_like(x)
-    signal[int(total_pt/2):int(total_pt/2)+1] = -100
-    # signal[0] = -1.0
-
-
-    # Create initialise fgen if it was not supplied
-    with FuncGen(address) as fgen:
-
-        print("Current waveform catalogue")
-        for i, wav in enumerate(fgen.get_waveform_catalogue()):
-            print(f"  {i}: {wav}")
-
-        # Transfer the waveform
-        fgen.set_custom_waveform(signal, memory_num=5, verify=True)
-        print("New waveform catalogue:")
-        for i, wav in enumerate(fgen.get_waveform_catalogue()):
-            print(f"  {i}: {wav}")
-            
-        print(f"Set new wavefrom to channel {channel}..", end=" ")
-        fgen.channels[channel - 1].set_output_state("OFF")
-        fgen.channels[channel - 1].set_function("USER5") # because of `memory_num` above
-        fgen.channels[channel - 1].set_amplitude(amplitude)
-        fgen.channels[channel - 1].set_offset(offset, unit="V")
-        fgen.channels[channel - 1].set_burst(ncycle=1)
-
-        # fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
-        print("ok")
-        
-        # Print current settings
-        fgen.print_settings()
+        # fgen.print_settings()
 
 def freq_comb(address: str, signal, amplitude=1, frequency=100, offset=0, channel=1):
 
@@ -1334,15 +1310,17 @@ def freq_comb(address: str, signal, amplitude=1, frequency=100, offset=0, channe
         fgen.channels[channel - 1].set_amplitude(amplitude)
         fgen.channels[channel - 1].set_frequency(frequency, unit="Hz")
         fgen.channels[channel - 1].set_offset(offset, unit="V")
+        fgen.channels[channel - 1].set_burst_off()
+
         print("ok")
         
         # Print current settings
         fgen.print_settings()
 
 def turn_on(address:str, channel = 1):
-    with FuncGen(address) as fgen:
+    with FuncGen(address, verbose=False) as fgen:
         fgen.channels[channel - 1].set_output("ON")
 
 def turn_off(address:str, channel = 1):
-    with FuncGen(address) as fgen:
+    with FuncGen(address, verbose=False) as fgen:
         fgen.channels[channel - 1].set_output("OFF")

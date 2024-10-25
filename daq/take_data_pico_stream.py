@@ -12,19 +12,25 @@ import h5py
 save = True
 plot = False
 
-channelInputRanges = np.array([10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000])
+serial_0 = ctypes.create_string_buffer(b'JO279/0118')  # Picoscope on cloud
+serial_1 = ctypes.create_string_buffer(b'JY140/0294')
+
 # Data collection settings
-channels = ['D']
-# Digitization range (0-11): 10, 20, 50, 100, 200, 500 (mV), 1, 2, 5, 10, 20, 50 (V)
-channel_ranges = np.array([6])
+##########################################################
+channelInputRanges = np.array([10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000])
+channels = ['D', 'E', 'F']
+channel_ranges = np.array([6, 6, 1])
+channel_couplings = ['DC', 'DC', 'DC']
 analog_offsets = None
 
 # Total length of data = `sample_interval`*`buffer_size`*`n_buffer`
 n_buffer = 1  # Number of buffer to capture
-buffer_size = int(2e7)
+buffer_size = int(3e7)
 
-sample_interval = 250
-sample_units = 'PS4000A_NS'
+sample_interval = 2
+sample_units = 'PS4000A_US'
+##########################################################
+# End of data collection setting
 
 # Variables
 enabled = 1
@@ -39,54 +45,65 @@ autoStopOuter = False
 one_buffer = None
 total_buffer = None
 
-def main():
+def set_up_pico(serial, channels, channel_ranges, channel_couplings, analog_offsets,
+                buffer_size, sample_interval, sample_units):
     # Create chandle and status
     chandle = ctypes.c_int16()
     status = {}
 
     # Initialize picoscope
-    initialize_pico(chandle, status)
-    set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets)
+    initialize_pico(chandle, status, serial)
+    set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets, channel_couplings)
 
     # Create buffer that stores the data
     set_data_buffers(chandle, status, channels, buffer_size)
 
-    # Start streaming and save data
-    if save:
-        file_directory = r"D:\dm_data\20241008_short_timetrace"
-        if not os.path.isdir(file_directory):
-            os.mkdir(file_directory)
+    return chandle, status
 
-    for i in range(120):
-        dt, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
 
+def main():
+    try:
         if save:
-            file_name = rf'20241008_streaming_d_{i}.hdf5'
-            with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
-                print(f'Writing file {file_name}')
+            file_directory = r"E:\dm_data\20241025_10e_long"
+            if not os.path.isdir(file_directory):
+                os.mkdir(file_directory)
 
-                dd = f.create_dataset('channel_d', data=data[0], dtype='f')
+        chandle, status = set_up_pico(serial_0, channels, channel_ranges, channel_couplings, analog_offsets,
+                                      buffer_size, sample_interval, sample_units)
 
-                for dataset in [dd]:
-                    dataset.attrs['delta_t'] = dt*time_dict[sample_units]
-                    dataset.attrs['unit'] = 'mV'
+        # Start streaming and save data
+        for i in range(1440):
+            timestamp, dt, adc2mvs, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
 
-                f.close()
-        if plot:
-            plt.plot(data[0])
-            plt.plot(data[1])
-            plt.xlabel(f'Index (interval={dt} {sample_units})')
-            plt.ylabel('Signal (mV)')
-            plt.show()
+            if save:
+                file_name = rf'20241025_def_10e_{i}.hdf5'
+                with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
+                    print(f'Writing file {file_name}')
 
-    # # Time in ms, data in mV
-    # return tt/1e6, data
-    stop_and_disconnect(chandle, status)
+                    g = f.create_group('data')
+                    g.attrs['timestamp'] = timestamp
+                    g.attrs['delta_t'] = dt * time_dict[sample_units]
+                    for i, channel in enumerate(channels):
+                        dataset = g.create_dataset(f'channel_{channel.lower()}', data=data[i], dtype=np.int16)
+                        dataset.attrs['adc2mv'] = adc2mvs[i]
+                    f.close()
+            if plot:
+                plt.plot(data[0] * adc2mvs[0])
+                # plt.plot(data[1] * adc2mvs[1])
+                plt.xlabel(f'Index (interval={dt} {sample_units})')
+                plt.ylabel('Signal (mV)')
+                plt.title(f'Timestamp = {timestamp}')
+                plt.show()
+
+        stop_and_disconnect(chandle, status)
+
+    except Exception as e:
+        print(e)
 
 # Functions
-def initialize_pico(chandle, status):
+def initialize_pico(chandle, status, serial=None):
     # Returns handle to chandle for use in future API functions
-    status["openunit"] = ps.ps4000aOpenUnit(ctypes.byref(chandle), None)
+    status["openunit"] = ps.ps4000aOpenUnit(ctypes.byref(chandle), serial)
     try:
         assert_pico_ok(status["openunit"])
     except:
@@ -97,22 +114,25 @@ def initialize_pico(chandle, status):
             raise
         assert_pico_ok(status["changePowerSource"])
 
-def set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets):
+def set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets, channel_couplings):
     if analog_offsets is None:
         analog_offsets = [0.0] * len(channels)
     for i, channel in enumerate(channels):
-        set_channel(chandle, status, channel, channel_ranges[i], analog_offsets[i])
+        set_channel(chandle, status, channel, channel_ranges[i], analog_offsets[i], channel_couplings[i])
 
-def set_channel(chandle, status, channel, channel_range, analog_offset):
+def set_channel(chandle, status, channel, channel_range, analog_offset, coupling='DC'):
     status_prefix = 'setCh' + channel
     # There is a but for Channel E in picoscope sdk so manually find the number
     channel_num = channel_dict[channel]
 
+    pico_coupling = 'PS4000A_DC'
+    if coupling == 'AC':
+        pico_coupling = 'PS4000A_AC'
     status[status_prefix] = ps.ps4000aSetChannel(chandle,
                                                 #  ps.PS4000A_CHANNEL[channel_prefix],
                                                  channel_num,
                                                  enabled,
-                                                 ps.PS4000A_COUPLING['PS4000A_DC'],
+                                                 ps.PS4000A_COUPLING[pico_coupling],
                                                  channel_range,
                                                  analog_offset)
     assert_pico_ok(status[status_prefix])
@@ -160,6 +180,7 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     downsampleRatio = 1
 
     nextSample = 0
+    timestamp = time.time()
     status["runStreaming"] = ps.ps4000aRunStreaming(chandle,
                                                     ctypes.byref(sampleInterval),
                                                     sampleUnits,
@@ -189,7 +210,6 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
             # If we weren't called back by the driver, this means no data is ready. Sleep for a short while before trying
             # again.
             time.sleep(0.01)
-    print('Done grabbing values')
 
     # Find maximum ADC count value
     maxADC = ctypes.c_int16()
@@ -199,10 +219,11 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     # Convert ADC counts data to physical values
     # print(f'maxADC: {maxADC.value}')
     adc2mV_conversion_factors = channelInputRanges[channel_ranges] / maxADC.value
+    data = total_buffer
 
-    data = np.empty_like(total_buffer)
-    for i, factor in enumerate(adc2mV_conversion_factors):
-        data[i] = factor * total_buffer[i]
+    # data = np.empty_like(total_buffer)
+    # for i, factor in enumerate(adc2mV_conversion_factors):
+    #     data[i] = factor * total_buffer[i]
     #
     # 20241008: skip using the `adc2mV` method provided by picoscope
     # because the list operation is very slow
@@ -211,7 +232,7 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     # for i in range(len(channels)):
     #     data[i] = adc2mV(total_buffer[i], channel_ranges[i], maxADC)
 
-    return actualSampleInterval, data
+    return timestamp, actualSampleInterval, adc2mV_conversion_factors, data
 
 def streaming_callback(handle, noOfSamples, startIndex, overflow, triggerAt, triggered, autoStop, param):
     global nextSample, autoStopOuter, wasCalledBack, total_buffer, one_buffer
