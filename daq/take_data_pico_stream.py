@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+import sys, os
+
 import ctypes
 from picosdk.ps4000a import ps4000a as ps
 from picosdk.functions import adc2mV, assert_pico_ok
@@ -9,15 +11,15 @@ import time
 import os
 import h5py
 
-save = True
-plot = False
+save = False
+plot = True
 
+############################
+# Data collection settings #
+############################
 serial_0 = ctypes.create_string_buffer(b'JO279/0118')  # Picoscope on cloud
 serial_1 = ctypes.create_string_buffer(b'JY140/0294')
 
-# Data collection settings
-##########################################################
-channelInputRanges = np.array([10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000])
 channels = ['D', 'E', 'F']
 channel_ranges = np.array([6, 6, 1])
 channel_couplings = ['DC', 'DC', 'DC']
@@ -25,41 +27,20 @@ analog_offsets = None
 
 # Total length of data = `sample_interval`*`buffer_size`*`n_buffer`
 n_buffer = 1  # Number of buffer to capture
-buffer_size = int(3e7)
+buffer_size = int(1e6)
 
 sample_interval = 2
 sample_units = 'PS4000A_US'
-##########################################################
-# End of data collection setting
+##################################
+# End of data collection setting #
+##################################
 
 # Variables
 enabled = 1
 disabled = 0
+channelInputRanges = np.array([10, 20, 50, 100, 200, 500, 1000, 2000, 5000, 10000, 20000, 50000])
 channel_dict = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
 time_dict = {'PS4000A_NS':1e-9, 'PS4000A_US':1e-6, 'PS4000A_MS':1e-3}
-
-# Other global variables used for streaming
-nextSample = 0
-wasCalledBack = False
-autoStopOuter = False
-one_buffer = None
-total_buffer = None
-
-def set_up_pico(serial, channels, channel_ranges, channel_couplings, analog_offsets,
-                buffer_size, sample_interval, sample_units):
-    # Create chandle and status
-    chandle = ctypes.c_int16()
-    status = {}
-
-    # Initialize picoscope
-    initialize_pico(chandle, status, serial)
-    set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets, channel_couplings)
-
-    # Create buffer that stores the data
-    set_data_buffers(chandle, status, channels, buffer_size)
-
-    return chandle, status
-
 
 def main():
     try:
@@ -68,11 +49,11 @@ def main():
             if not os.path.isdir(file_directory):
                 os.mkdir(file_directory)
 
-        chandle, status = set_up_pico(serial_0, channels, channel_ranges, channel_couplings, analog_offsets,
-                                      buffer_size, sample_interval, sample_units)
+        chandle, status = set_up_pico(serial_1, channels, channel_ranges, channel_couplings, analog_offsets,
+                                      buffer_size)
 
         # Start streaming and save data
-        for i in range(1440):
+        for i in range(1):
             timestamp, dt, adc2mvs, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
 
             if save:
@@ -101,6 +82,21 @@ def main():
         print(e)
 
 # Functions
+def set_up_pico(serial, channels, channel_ranges, channel_couplings, analog_offsets,
+                buffer_size):
+    # Create chandle and status
+    chandle = ctypes.c_int16()
+    status = {}
+
+    # Initialize picoscope
+    initialize_pico(chandle, status, serial)
+    set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets, channel_couplings)
+
+    # Create buffer that stores the data
+    set_data_buffers(chandle, status, channels, buffer_size)
+
+    return chandle, status
+
 def initialize_pico(chandle, status, serial=None):
     # Returns handle to chandle for use in future API functions
     status["openunit"] = ps.ps4000aOpenUnit(ctypes.byref(chandle), serial)
@@ -122,7 +118,7 @@ def set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets,
 
 def set_channel(chandle, status, channel, channel_range, analog_offset, coupling='DC'):
     status_prefix = 'setCh' + channel
-    # There is a but for Channel E in picoscope sdk so manually find the number
+    # There is a bug for Channel E in picoscope sdk so manually find the number
     channel_num = channel_dict[channel]
 
     pico_coupling = 'PS4000A_DC'
@@ -144,8 +140,7 @@ def set_data_buffers(chandle, status, channels, buffer_size):
     memory_segment = 0
 
     # Create buffers ready for assigning pointers for data collection
-    if one_buffer is None:
-        one_buffer = np.zeros(shape=(len(channels), buffer_size), dtype=np.int16)
+    one_buffer = np.zeros(shape=(len(channels), buffer_size), dtype=np.int16)
 
     for i, channel in enumerate(channels):
         status_prefix_buff = f'setDataBuffers{channel}'
@@ -159,16 +154,14 @@ def set_data_buffers(chandle, status, channels, buffer_size):
                                                               memory_segment,
                                                               ps.PS4000A_RATIO_MODE['PS4000A_RATIO_MODE_NONE'])
         assert_pico_ok(status[status_prefix_buff])
-    return one_buffer
 
 def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer):
-    global nextSample, wasCalledBack, autoStopOuter, total_buffer
+    global nextSample, total_buffer, one_buffer
 
     sizeOfOneBuffer = buffer_size
     numBuffersToCapture = n_buffer
     totalSamples = sizeOfOneBuffer * numBuffersToCapture
-    if total_buffer is None:
-        total_buffer = np.zeros(shape=(len(channel_ranges), totalSamples), dtype=np.int16)
+    total_buffer = np.zeros(shape=(len(channel_ranges), totalSamples), dtype=np.int16)
 
     sampleInterval = ctypes.c_int32(sample_interval)
     sampleUnits = ps.PS4000A_TIME_UNITS[sample_units]
@@ -176,10 +169,10 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     # We are not triggering:
     maxPreTriggerSamples = 0
     autoStopOn = 1
+
     # No downsampling:
     downsampleRatio = 1
 
-    nextSample = 0
     timestamp = time.time()
     status["runStreaming"] = ps.ps4000aRunStreaming(chandle,
                                                     ctypes.byref(sampleInterval),
@@ -196,6 +189,7 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     actualSampleInterval = sampleInterval.value
     print(f"Capturing at sample interval {actualSampleInterval} {sample_units}")
 
+    nextSample = 0
     autoStopOuter = False
     wasCalledBack = False
 
@@ -221,24 +215,10 @@ def stream_data(chandle, status, sample_interval, sample_units, channel_ranges, 
     adc2mV_conversion_factors = channelInputRanges[channel_ranges] / maxADC.value
     data = total_buffer
 
-    # data = np.empty_like(total_buffer)
-    # for i, factor in enumerate(adc2mV_conversion_factors):
-    #     data[i] = factor * total_buffer[i]
-    #
-    # 20241008: skip using the `adc2mV` method provided by picoscope
-    # because the list operation is very slow
-    #
-    # data = np.empty_like(total_buffer)
-    # for i in range(len(channels)):
-    #     data[i] = adc2mV(total_buffer[i], channel_ranges[i], maxADC)
-
     return timestamp, actualSampleInterval, adc2mV_conversion_factors, data
 
 def streaming_callback(handle, noOfSamples, startIndex, overflow, triggerAt, triggered, autoStop, param):
     global nextSample, autoStopOuter, wasCalledBack, total_buffer, one_buffer
-
-    # print(f'nextSample: {nextSample}')
-    # print(f'noOfSamples: {noOfSamples}')
 
     wasCalledBack = True
     destEnd = nextSample + noOfSamples
@@ -253,12 +233,10 @@ def streaming_callback(handle, noOfSamples, startIndex, overflow, triggerAt, tri
 
 def stop_and_disconnect(chandle, status):
     # Stop the scope
-    # handle = chandle
     status["stop"] = ps.ps4000aStop(chandle)
     assert_pico_ok(status["stop"])
 
     # Disconnect the scope
-    # handle = chandle
     status["close"] = ps.ps4000aCloseUnit(chandle)
     assert_pico_ok(status["close"])
 
