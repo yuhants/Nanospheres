@@ -1251,8 +1251,9 @@ def impulse(address: str, amplitude=5, offset=0.5, channel=1):
     # Make only 200 out of 8000 points non zero
     x = np.linspace(0, 4 * np.pi, 8192)
     signal = np.zeros_like(x)
-    # signal[4000:4075] = -100
-    signal[4000:4200] = -100
+    # signal[4000:4200] = -100
+
+    signal[4000:4015] = -100
     # signal[4000:8000] = -100
 
     upload_waveform = False

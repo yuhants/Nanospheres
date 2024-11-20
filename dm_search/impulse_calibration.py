@@ -18,12 +18,13 @@ import h5py
 
 # Impulse setting
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
-amps = [3, 5, 7, 9]
+amps = [1, 3, 5, 7, 9]
 # amps = [1]
 offset_1, offset_2 = 0.01, 0.01
 
 # Data collection setting
-file_directory = r"E:\pulse\20241029_11e"
+file_directory = r'E:\pulse\20241113_12e'
+file_prefix = r'20241113_dg_12e'
 
 serial_0 = ctypes.create_string_buffer(b'JO279/0118')  # Picoscope on cloud
 serial_1 = ctypes.create_string_buffer(b'JY140/0294')
@@ -60,7 +61,7 @@ def main():
 
         # Data taking
         for i in range(10):
-            file_name = rf'20241029_dg_11e_{amp}v_{i}.hdf5'
+            file_name = rf'{file_prefix}_{amp}v_{i}.hdf5'
             timestamp, dt, adc2mvs, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
 
             with h5py.File(os.path.join(file_directory, file_name), 'w') as f:

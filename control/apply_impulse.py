@@ -17,18 +17,20 @@ import time
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 # _VISA_ADDRESS_tektronix = 'USB0::0x0699::0x0353::2328304::INSTR'
 
-AMPLIFIED = False
+AMPLIFIED = True
 
 # Amplitude of impulse in V
-AMP  = 5
+AMP  = 50
 OFFSET = 0.01
 
 if AMPLIFIED:
     AMP = AMP / 20
     OFFSET1 = OFFSET / -20
+    OFFSET2 = OFFSET / -20
+
 else:
     OFFSET1 = OFFSET
-OFFSET2 = OFFSET
+    OFFSET2 = OFFSET
 
 def impulse_on(visa_address, amp, offset_1, offset_2):
     tek.impulse(visa_address, amplitude=amp, offset=offset_1-amp/2, channel=1)

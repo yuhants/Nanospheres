@@ -5,6 +5,7 @@ sys.path.append(os.path.dirname(r'C:\Users\yuhan\nanospheres\control'))
 import numpy as np
 import matplotlib.pyplot as plt
 
+from control.src.agilent_twisstorr_84fsag_control import read_pressure
 from picosdk.ps4000a import ps4000a as ps
 from picosdk.functions import assert_pico_ok
 import ctypes
@@ -12,9 +13,9 @@ import ctypes
 import h5py
 
 # Monitoring E field (TODO)
-_VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
-amp, freq = 2, 89000
-offset_1, offset_2 = 0.01, 0.01
+# _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
+# amp, freq = 2, 89000
+# offset_1, offset_2 = 0.01, 0.01
 
 # Picoscope DAQ setting
 serial_0 = ctypes.create_string_buffer(b'JO279/0118')  # Picoscope on cloud
@@ -22,9 +23,18 @@ serial_1 = ctypes.create_string_buffer(b'JY140/0294')
 
 # Digitization range (0-11): 10, 20, 50, 100, 200, 500 (mV), 1, 2, 5, 10, 20, 50 (V)
 
-channels = ['D', 'F']
-channel_ranges = np.array([6, 1])
-channel_couplings = ['DC', 'DC']
+# channels = ['A', 'B', 'C', 'D', 'E', 'F', 'G']
+# channel_ranges = np.array([9, 9, 9, 6, 5, 3, 3])
+# channel_couplings = ['DC', 'DC', 'DC', 'DC', 'DC', 'DC', 'DC']
+
+channels = ['A', 'B', 'C', 'D']
+channel_ranges = np.array([8, 8, 8, 6])
+channel_couplings = ['DC', 'DC', 'DC', 'DC']
+
+# channels = ['D', 'E', 'F', 'G']
+# channel_ranges = np.array([7, 6, 1, 1])
+# channel_couplings = ['DC', 'DC', 'DC', 'DC']
+
 analog_offsets = None
 
 n_buffer = 1  # Number of buffer to capture
@@ -33,9 +43,9 @@ buffer_size = int(3e7)
 sample_interval = 2
 sample_units = 'PS4000A_US'
 
-file_directory = r"E:\dm_data\20241029_11e_long"
-file_prefix = '20241029_df_11e'
-n_file = 720
+file_directory = r"E:\dm_data\20241119_2e-7mbar"
+file_prefix = '20241119_abcd_2e-7mbar'
+n_file = 60
 
 # Variables used by Picoscope DAQ
 enabled = 1
@@ -48,6 +58,7 @@ def main():
     if not os.path.isdir(file_directory):
         os.mkdir(file_directory)
 
+    pressure = read_pressure(port=r'COM7', baudrate='9600')
     chandle, status = set_up_pico(serial_0, channels, channel_ranges, channel_couplings, analog_offsets,
                                   buffer_size)
 
@@ -61,6 +72,7 @@ def main():
 
             g = f.create_group('data')
             g.attrs['timestamp'] = timestamp
+            g.attrs['pressure_mbar'] = pressure
             g.attrs['delta_t'] = dt * time_dict[sample_units]
             for i, channel in enumerate(channels):
                 dataset = g.create_dataset(f'channel_{channel.lower()}', data=data[i], dtype=np.int16)
