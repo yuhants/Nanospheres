@@ -1,6 +1,9 @@
 """
 This code performs impulse calibration by applying
 impulses of various different ampitudes
+
+## Not working properly right now
+## (Picoscope memeory get filled up after a few runs)
 """
 
 import sys, os
@@ -10,7 +13,6 @@ sys.path.append(os.path.dirname(r'C:\Users\yuhan\nanospheres\control'))
 import numpy as np
 from control.apply_impulse import impulse_on, turn_off
 from control.src.quantum_composers_9614_control import set_pulse, turn_on, turn_off
-import matplotlib.pyplot as plt
 
 from picosdk.ps4000a import ps4000a as ps
 from picosdk.functions import assert_pico_ok
@@ -19,37 +21,37 @@ import h5py
 
 import matplotlib.pyplot as plt
 
-# Impulse setting
-_VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
-amps = [1, 3, 5, 7, 9]
-# amps = [1]
-offset_1, offset_2 = 0.01, 0.01
+amps = [20]
 
 # Data collection setting
-file_directory = r'E:\pulse\20241113_12e'
-file_prefix = r'20241113_dg_12e'
+file_directory = r'E:\pulse_waveform\20241204_quantum_composers'
+file_prefix = r'20241204_200ns'
 
 serial_0 = ctypes.create_string_buffer(b'JO279/0118')  # Picoscope on cloud
 serial_1 = ctypes.create_string_buffer(b'JY140/0294')
 
-channels = ['A', 'B']
+channels = ['G']
 # Digitization range (0-11): 10, 20, 50, 100, 200, 500 (mV), 1, 2, 5, 10, 20, 50 (V)
-channel_ranges = np.array([9, 9])
-channel_couplings = ['DC', 'DC']
+channel_ranges = np.array([10])
+channel_couplings = ['DC']
 analog_offsets = None
 
 # Trigger setting
-trigger_channel = 'A'
-threshold = 1000
-direction = 2  # Rising
+trigger_channel = 'G'
+threshold = 1000    # in ADC value
+direction = 2       # Rising
 delay = 0
-auto_trigger = 500
+auto_trigger = 500  # ms
 
 timebase = 1  # 25 ns
-pre_trigger_samples = 500
-post_trigger_samples = 500
+# timebase = 15  # 200 ns
+# timebase = 159   # 2 us
 
-n_capture = 2
+pre_trigger_samples = 50
+post_trigger_samples = 250
+
+n_capture = 100
+n_file = 1
 
 # Variables used by Picoscope DAQ
 enabled = 1
@@ -59,48 +61,42 @@ channel_dict = {'A':0, 'B':1, 'C':2, 'D':3, 'E':4, 'F':5, 'G':6, 'H':7}
 time_dict = {'PS4000A_NS':1e-9, 'PS4000A_US':1e-6, 'PS4000A_MS':1e-3}
 
 def main():
-    # if not os.path.isdir(file_directory):
-    #     os.mkdir(file_directory)
+    if not os.path.isdir(file_directory):
+        os.mkdir(file_directory)
 
-    chandle, status, max_samples, t_interval_ns = set_up_pico_trigger(serial_1, channels, channel_ranges, channel_couplings, analog_offsets,
-                                                  trigger_channel, threshold, direction, delay, auto_trigger,
-                                                  timebase, pre_trigger_samples, post_trigger_samples, n_capture)
-    
-    adc2mvs, data = run_rapid_block(chandle, status, pre_trigger_samples, post_trigger_samples, timebase, n_capture, channel_ranges)
-    print(t_interval_ns, adc2mvs)
+    # chandle, status = set_up_pico(serial_0, channels, channel_ranges, channel_couplings, analog_offsets)
 
-    for i in range(1):
-        for j in range(n_capture):
-            plt.plot(data[i, j])
-    plt.show()
+    for amp in amps:
+        set_pulse(channel=1, amp=amp, width='0.0000002', period='0.3')
+        turn_on()
 
-    # for amp in amps:
-    #     impulse_on(_VISA_ADDRESS_tektronix, amp, offset_1, offset_2)
+        # Data taking
+        # for i in range(n_file):
+        #     file_name = rf'{file_prefix}_{amp}v_{i}.hdf5'
 
-    #     # Data taking
-    #     for i in range(10):
-    #         file_name = rf'{file_prefix}_{amp}v_{i}.hdf5'
-    #         timestamp, dt, adc2mvs, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
+        #     max_samples, t_interval_ns = set_pico_trigger(chandle, status, trigger_channel, threshold, direction, delay, auto_trigger, timebase, 
+        #                                                   pre_trigger_samples, post_trigger_samples, n_capture)
+        #     print(f'Capturing at {t_interval_ns} ns')
+            
+        #     adc2mvs, data = run_rapid_block(chandle, status, pre_trigger_samples, post_trigger_samples, timebase, n_capture, channel_ranges)
 
-    #         with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
-    #             print(f'Writing file {file_name}')
+        #     with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
+        #         print(f'Writing file {file_name}')
 
-    #             g = f.create_group('data')
-    #             g.attrs['timestamp'] = timestamp
-    #             g.attrs['delta_t'] = dt * time_dict[sample_units]
-    #             for i, channel in enumerate(channels):
-    #                 dataset = g.create_dataset(f'channel_{channel.lower()}', data=data[i], dtype=np.int16)
-    #                 dataset.attrs['adc2mv'] = adc2mvs[i]
-    #             f.close()
+        #         g = f.create_group('data')
+        #         g.attrs['delta_t'] = t_interval_ns * 1e-9
+        #         for j, channel in enumerate(channels):
+        #             for k in range(n_capture):
+        #                 dataset = g.create_dataset(f'channel_{channel.lower()}_{k}', data=data[j, k], dtype=np.int16)
+        #                 dataset.attrs['adc2mv'] = adc2mvs[j]
+        #         f.close()
+        # stop_pico(chandle, status)
+        # turn_off()
 
-    #     turn_off(_VISA_ADDRESS_tektronix)
-
-    stop_and_disconnect(chandle, status)
+    # disconnect(chandle, status)
 
 # Functions
-def set_up_pico_trigger(serial, channels, channel_ranges, channel_couplings, analog_offsets,
-                        trigger_channel, threshold, direction, delay, auto_trigger,
-                        timebase, pre_trigger_samples, post_trigger_samples, n_capture):
+def set_up_pico(serial, channels, channel_ranges, channel_couplings, analog_offsets):
     # Create chandle and status
     chandle = ctypes.c_int16()
     status = {}
@@ -109,13 +105,18 @@ def set_up_pico_trigger(serial, channels, channel_ranges, channel_couplings, ana
     initialize_pico(chandle, status, serial)
     set_channels_pico(chandle, status, channels, channel_ranges, analog_offsets, channel_couplings)
 
+    return chandle, status
+
+def set_pico_trigger(chandle, status, trigger_channel, threshold, direction, delay, auto_trigger,
+                    timebase, pre_trigger_samples, post_trigger_samples, n_capture):
+    
     max_samples, t_interval_ns = set_trigger(chandle, status, trigger_channel, threshold, direction, delay, auto_trigger,
                                  timebase, pre_trigger_samples, post_trigger_samples, n_capture)
 
     # Create buffer that stores the data
     set_data_buffers(chandle, status, channels, buffer_size=max_samples, n_segment=n_capture)
 
-    return chandle, status, max_samples, t_interval_ns
+    return max_samples, t_interval_ns
 
 def initialize_pico(chandle, status, serial=None):
     # Returns handle to chandle for use in future API functions
@@ -172,7 +173,6 @@ def set_trigger(chandle, status, channel, threshold, direction, delay, auto_trig
     returnedMaxSamples = ctypes.c_int32()
     status["getTimebase2"] = ps.ps4000aGetTimebase2(chandle, timebase, max_samples, ctypes.byref(timeIntervalns), ctypes.byref(returnedMaxSamples), 0)
     assert_pico_ok(status["getTimebase2"])
-    print(timeIntervalns)
 
     # Set up memory segments of the picoscope for rapid block
     nMaxSamples = ctypes.c_int32(0)
@@ -243,11 +243,12 @@ def run_rapid_block(chandle, status, pre_trigger_samples, post_trigger_samples, 
 
     return adc2mV_conversion_factors, data
 
-def stop_and_disconnect(chandle, status):
+def stop_pico(chandle, status):
     # Stop the scope
     status["stop"] = ps.ps4000aStop(chandle)
     assert_pico_ok(status["stop"])
 
+def disconnect(chandle, status):
     # Disconnect the scope
     status["close"] = ps.ps4000aCloseUnit(chandle)
     assert_pico_ok(status["close"])

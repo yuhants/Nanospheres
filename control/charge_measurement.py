@@ -22,8 +22,8 @@ TODO: need to add the bit that collects and analyses the data.
 _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
 
 ### Variables
-# AMPLIFIED = True
-AMPLIFIED = False
+AMPLIFIED = True
+# AMPLIFIED = False
 
 # DC bias in V
 
@@ -32,16 +32,14 @@ AMPLIFIED = False
 # OFFSET1 = -40
 # OFFSET2 = -40
 
-# AMP  = 50    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+# AMP  = 40    # Peak-to-peak amplitude of the driving E field @ 1 mbar
 # FREQ = 57000 # Driving frequency in Hz
 
 ## Values at low pressure
-OFFSET1 = 0.01
-OFFSET2 = 0.01
-# OFFSET1 = 50
-# OFFSET2 = 50
-# OFFSET1 = 50
-# OFFSET2 = 50
+OFFSET1 = -50
+OFFSET2 = -50
+# OFFSET1 = 0
+# OFFSET2 = 0
 AMP  = 2.5
 FREQ = 93000
 
@@ -71,7 +69,8 @@ while True:
         break
 
 tek.turn_off(_VISA_ADDRESS_tektronix, channel=1)
-if OFFSET2 != 0:
-    tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
+# if OFFSET2 != 0:
+tek.turn_off(_VISA_ADDRESS_tektronix, channel=2)
+
 print('E field switched off')
 print('Program ends')

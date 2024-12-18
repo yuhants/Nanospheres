@@ -28,7 +28,7 @@ def calculate_xor_checksum(data):
 def main():
     # start()
     pressure = read_pressure()
-    print(pressure)
+    print(f'Current pressure: {pressure} mbar')
 
     # data = bytearray([0x80, 0x30, 0x30, 0x30, 0x31, 0x31, 0x03])
     # checksum = calculate_xor_checksum(data)

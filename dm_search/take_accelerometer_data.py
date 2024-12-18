@@ -1,48 +1,37 @@
-"""
-This code performs impulse calibration by applying
-impulses of various different ampitudes
-"""
-
 import sys, os
 import time
 sys.path.append(os.path.dirname(r'C:\Users\yuhan\nanospheres\control'))
 
 import numpy as np
-# from control.apply_impulse import impulse_on, turn_off
-from control.src.quantum_composers_9614_control import set_pulse, turn_on, turn_off
 import matplotlib.pyplot as plt
 
+from control.src.agilent_twisstorr_84fsag_control import read_pressure
 from picosdk.ps4000a import ps4000a as ps
 from picosdk.functions import assert_pico_ok
 import ctypes
+
 import h5py
 
-# Impulse setting
-# _VISA_ADDRESS_tektronix = "USB0::0x0699::0x0353::2238362::INSTR"
-# amps = [1, 3, 5, 7, 9]
-# offset_1, offset_2 = 0.01, 0.01
-
-amps = [2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20]
-
-# Data collection setting
-file_directory = r'E:\pulse_calibration\20241213_8e_alignment2_5'
-file_prefix = r'20241213_dg_8e_200ns'
-
+# Picoscope DAQ setting
 serial_0 = ctypes.create_string_buffer(b'JO279/0118')  # Picoscope on cloud
 serial_1 = ctypes.create_string_buffer(b'JY140/0294')
-channels = ['D', 'G']
+
 # Digitization range (0-11): 10, 20, 50, 100, 200, 500 (mV), 1, 2, 5, 10, 20, 50 (V)
-channel_ranges = np.array([6, 10])
-channel_couplings = ['DC', 'DC']
+channels = ['A']
+channel_ranges = np.array([8])
+channel_couplings = ['DC']
+
 analog_offsets = None
 
-# Need to sample fast enough to capture the pulses
-# here 30 million samples is 6 seconds
 n_buffer = 1  # Number of buffer to capture
 buffer_size = int(3e7)
 
 sample_interval = 200
-sample_units = 'PS4000A_NS'
+sample_units = 'PS4000A_US'
+
+file_directory = r"D:\accelerometer\20241204_accelerometer_ontable_srsgain2000_overnight"
+file_prefix = '20241204_a_'
+n_file = 15
 
 # Variables used by Picoscope DAQ
 enabled = 1
@@ -55,33 +44,27 @@ def main():
     if not os.path.isdir(file_directory):
         os.mkdir(file_directory)
 
-    chandle, status = set_up_pico(serial_0, channels, channel_ranges, channel_couplings, analog_offsets,
+    chandle, status = set_up_pico(serial_1, channels, channel_ranges, channel_couplings, analog_offsets,
                                   buffer_size)
 
-    for amp in amps:
-        # impulse_on(_VISA_ADDRESS_tektronix, amp, offset_1, offset_2)
-        set_pulse(channel=1, amp=amp, width='0.0000002', period='0.3')
-        turn_on()
-        print(f'Pulse amplitude: {amp} V')
+    # Data taking
+    for i in range(n_file):
+        # pressure = read_pressure(port=r'COM7', baudrate='9600')
 
-        # Data taking
-        for i in range(10):
-            file_name = rf'{file_prefix}_{amp}v_{i}.hdf5'
-            timestamp, dt, adc2mvs, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
+        file_name = rf'{file_prefix}{i}.hdf5'
+        timestamp, dt, adc2mvs, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
 
-            with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
-                print(f'Writing file {file_name}')
+        with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
+            print(f'Writing file {file_name}')
 
-                g = f.create_group('data')
-                g.attrs['timestamp'] = timestamp
-                g.attrs['delta_t'] = dt * time_dict[sample_units]
-                for i, channel in enumerate(channels):
-                    dataset = g.create_dataset(f'channel_{channel.lower()}', data=data[i], dtype=np.int16)
-                    dataset.attrs['adc2mv'] = adc2mvs[i]
-                f.close()
-
-        turn_off()
-        # turn_off(_VISA_ADDRESS_tektronix)
+            g = f.create_group('data')
+            g.attrs['timestamp'] = timestamp
+            # g.attrs['pressure_mbar'] = pressure
+            g.attrs['delta_t'] = dt * time_dict[sample_units]
+            for i, channel in enumerate(channels):
+                dataset = g.create_dataset(f'channel_{channel.lower()}', data=data[i], dtype=np.int16)
+                dataset.attrs['adc2mv'] = adc2mvs[i]
+            f.close()
 
     stop_and_disconnect(chandle, status)
 

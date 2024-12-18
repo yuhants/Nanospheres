@@ -27,13 +27,9 @@ serial_1 = ctypes.create_string_buffer(b'JY140/0294')
 # channel_ranges = np.array([9, 9, 9, 6, 5, 3, 3])
 # channel_couplings = ['DC', 'DC', 'DC', 'DC', 'DC', 'DC', 'DC']
 
-channels = ['A', 'B', 'C', 'D']
-channel_ranges = np.array([8, 8, 8, 6])
-channel_couplings = ['DC', 'DC', 'DC', 'DC']
-
-# channels = ['D', 'E', 'F', 'G']
-# channel_ranges = np.array([7, 6, 1, 1])
-# channel_couplings = ['DC', 'DC', 'DC', 'DC']
+channels = ['A', 'B', 'C', 'D', 'E']
+channel_ranges = np.array([9, 9, 9, 6, 7])
+channel_couplings = ['DC', 'DC', 'DC', 'DC', 'DC']
 
 analog_offsets = None
 
@@ -43,9 +39,11 @@ buffer_size = int(3e7)
 sample_interval = 2
 sample_units = 'PS4000A_US'
 
-file_directory = r"E:\dm_data\20241119_2e-7mbar"
-file_prefix = '20241119_abcd_2e-7mbar'
-n_file = 60
+file_directory = r"E:\dm_data\20241217_6e-8mbar_0e_alignment3_long"
+file_prefix = '20241217_d_'
+
+idx_start = 387
+n_file = 1440 - idx_start
 
 # Variables used by Picoscope DAQ
 enabled = 1
@@ -58,13 +56,14 @@ def main():
     if not os.path.isdir(file_directory):
         os.mkdir(file_directory)
 
-    pressure = read_pressure(port=r'COM7', baudrate='9600')
     chandle, status = set_up_pico(serial_0, channels, channel_ranges, channel_couplings, analog_offsets,
                                   buffer_size)
 
     # Data taking
     for i in range(n_file):
-        file_name = rf'{file_prefix}_{i}.hdf5'
+        pressure = read_pressure(port=r'COM7', baudrate='9600')
+
+        file_name = rf'{file_prefix}{i+idx_start}.hdf5'
         timestamp, dt, adc2mvs, data = stream_data(chandle, status, sample_interval, sample_units, channel_ranges, buffer_size, n_buffer)
 
         with h5py.File(os.path.join(file_directory, file_name), 'w') as f:
@@ -75,8 +74,11 @@ def main():
             g.attrs['pressure_mbar'] = pressure
             g.attrs['delta_t'] = dt * time_dict[sample_units]
             for i, channel in enumerate(channels):
-                dataset = g.create_dataset(f'channel_{channel.lower()}', data=data[i], dtype=np.int16)
-                dataset.attrs['adc2mv'] = adc2mvs[i]
+                if channel == 'D':
+                    dataset = g.create_dataset(f'channel_{channel.lower()}', data=data[i], dtype=np.int16)
+                    dataset.attrs['adc2mv'] = adc2mvs[i]
+                else:
+                    g.attrs[f'channel_{channel.lower()}_mean_mv'] = np.mean(data[i]) * adc2mvs[i]
             f.close()
 
     stop_and_disconnect(chandle, status)

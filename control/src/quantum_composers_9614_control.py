@@ -1,21 +1,26 @@
 import serial
+import time
 
-def set_pulse(port=r'COM9', baudrate='38400', channel=1, amp=5, width_ns=200, period_ms=300):
+def write_and_receive(ser, command):
+    ser.write(bytes(command, encoding='UTF-8'))
+    response = ser.readline()
+
+    return(response.decode('UTF-8'))
+
+def set_pulse(port=r'COM9', baudrate='38400', channel=1, amp=5, width='0.0000002', period='0.3'):
     ser = serial.Serial(r'COM9', baudrate='38400', timeout=1)
 
-    ## TODO: for channels other than channel 1
-    ## set `PULSE1` below to `PULSE{n}`
-    ser.write(b':PULSE1:STATE ON \r\n')
+    pulse_channel = f'PULSE{str(channel)}'
+    _ = write_and_receive(ser, f':{pulse_channel}:STATE ON \r\n')
+    _ = write_and_receive(ser, f':{pulse_channel}:OUTP:AMPL {amp} \r\n')
+    _ = write_and_receive(ser, f':PULSE1:WIDT {width} \r\n')
+    _ = write_and_receive(ser, f':PULSE0:PER {period} \r\n')
 
-    ser.write(b':PULSE1:AMP 20 \r\n')
-    ser.write(b':PULSE1:WIDTH 0.0000002 \r\n')
-    ser.write(b':PULSE0:PER 0.3 \r\n')
+    _ = write_and_receive(ser, f':{pulse_channel}:POL NORM \r\n')
+    _ = write_and_receive(ser, f':{pulse_channel}:DELAY 0 \r\n')
 
-    ser.write(b':PULSE1:POL NORM \r\n')
-    ser.write(b':PULSE1:DELAY 0 \r\n')
-
-    ser.write(b':PULSE0:MODE NORM \r\n')
-    ser.write(b':PULSE0:EXT:MODE DIS \r\n')
+    _ = write_and_receive(ser, ':PULSE0:MODE NORM \r\n')
+    _ = write_and_receive(ser, ':PULSE0:EXT:MODE DIS \r\n')
 
     ser.close()
 
@@ -29,11 +34,19 @@ def turn_off(port=r'COM9', baudrate='38400'):
     ser.write(b':PULSE0:STATE OFF \r\n')
     ser.close()
 
-# set_pulse()
-# turn_on()
-turn_off()
+def main():
+    set_pulse(channel=1, amp=10, width='0.0000002', period='0.3')
+    turn_on()
 
-# response = ser.readline().decode('utf-8')
-# print(response)
+    i = 0
+    while i < 1000:
+        try:
+            time.sleep(1)
+            i+=1
+        except KeyboardInterrupt:
+            break
 
-# ser.close()
+    turn_off()
+
+if __name__ == '__main__':
+    main()
