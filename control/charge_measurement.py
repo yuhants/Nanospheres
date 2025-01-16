@@ -31,18 +31,19 @@ AMPLIFIED = True
 # OFFSET2 = 60
 # OFFSET1 = -40
 # OFFSET2 = -40
+# OFFSET1 = 0
+# OFFSET2 = 0
 
-# AMP  = 40    # Peak-to-peak amplitude of the driving E field @ 1 mbar
+# AMP  = 60    # Peak-to-peak amplitude of the driving E field @ 1 mbar
 # FREQ = 57000 # Driving frequency in Hz
 
 ## Values at low pressure
-OFFSET1 = -50
-OFFSET2 = -50
-# OFFSET1 = 0
-# OFFSET2 = 0
+# OFFSET1 = 50
+# OFFSET2 = 50
+OFFSET1 = 0
+OFFSET2 = 0
 AMP  = 2.5
 FREQ = 93000
-
 
 if AMPLIFIED:
     AMP = AMP / 20

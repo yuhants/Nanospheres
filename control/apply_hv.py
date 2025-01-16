@@ -2,7 +2,7 @@ import pyvisa
 import time
 import src.RIGOL_control.DG822.DG822_control as rig
 
-VOLT = 1.05      # Voltage for triggering HV supply for needle. Value in kV.
+VOLT = 1.05   # Voltage for triggering HV supply for needle. Value in kV.
               # There will be a minimum below which it will not ionise the air. 
               # I think this probably also maxes out around 1 kV as it can't supply more current.
 FREQ_PULSE = 0.2

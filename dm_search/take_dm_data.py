@@ -39,10 +39,11 @@ buffer_size = int(3e7)
 sample_interval = 2
 sample_units = 'PS4000A_US'
 
-file_directory = r"E:\dm_data\20241217_6e-8mbar_0e_alignment3_long"
-file_prefix = '20241217_d_'
+sphere = 'sphere_20250103'
+file_directory = rf"E:\dm_data\{sphere}\20250116_8e-9mbar_0e_alignment1_long"
+file_prefix = '20250116_d_'
 
-idx_start = 387
+idx_start = 0
 n_file = 1440 - idx_start
 
 # Variables used by Picoscope DAQ
